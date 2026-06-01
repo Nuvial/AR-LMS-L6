@@ -36,6 +36,10 @@ login_manager.login_message_category = 'warning'
 def index():
     return redirect(url_for('auth.dashboard', active_page='dashboard'))
 
+@app.route('/ping')
+def ping():
+    return "ok", 200
+
 @login_manager.user_loader
 def load_user(user_id):
     """Load user from the database using user_id."""
