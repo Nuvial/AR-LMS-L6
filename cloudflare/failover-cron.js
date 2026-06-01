@@ -20,13 +20,15 @@ export default {
     }
 
     const want = healthy ? tunnel : render;
-    const cur = await fetch(api, { headers }).then(r => r.json());
+    const proxied = healthy;
+    const ttl = proxied ? 1 : 60;
+    const cur = await fetch(api, { headers }).then((r) => r.json());
 
-    if (cur.result.content !== want) {
+    if (cur.result.content !== want || cur.result.proxied !== proxied) {
       await fetch(api, {
         method: "PATCH",
         headers,
-        body: JSON.stringify({ content: want, proxied: true }),
+        body: JSON.stringify({ content: want, proxied, ttl }),
       });
     }
   },
