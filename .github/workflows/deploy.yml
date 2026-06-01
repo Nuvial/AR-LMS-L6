@@ -2,7 +2,7 @@ name: build-and-publish
 
 on:
   push:
-    branches: [main]
+    branches: [main, test]
 
 permissions:
   contents: read
@@ -27,4 +27,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/nuvial/ar-ems-l6:latest
+          tags: ghcr.io/nuvial/ar-ems-l6:${{ github.ref_name == 'main' && 'latest' || 'test'}}
