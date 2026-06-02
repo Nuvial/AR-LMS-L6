@@ -1,0 +1,8 @@
+{
+    "name": "ar-ems-l6-failover-cron", 
+    "private": true,
+    "devDependencies": 
+    { 
+        "wrangler": "^4.96.0" 
+    }
+}
