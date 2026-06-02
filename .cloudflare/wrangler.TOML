@@ -1,0 +1,7 @@
+name = "ar-ems-l6-failover-cron"
+main = "failover-cron.js"
+compatibility_date = "2026-01-01"
+workers_dev = false
+
+[triggers]
+crons = ["* * * * *"]
