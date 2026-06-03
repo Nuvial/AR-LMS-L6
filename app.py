@@ -8,7 +8,7 @@ from db import get_db
 
 app = Flask(__name__)
 bcrypt = Bcrypt()
-app.secret_key = 'secret_key'  # Replace with a secure key
+app.secret_key = 'secret_key'  # TODO: Replace with a secure key
 
 # === Blueprint Registration ===
 from routes.employees import employees
@@ -73,11 +73,14 @@ def init_db():
         print("[INIT] Database initialised. Admin & User account created.")
 
 def ensure_db_exists():
-    if not os.path.exists('database.db'):
-        print("[INIT] No database found. Creating new database...")
-        init_db()
-    else:
+    with app.app_context():
+        initialised = get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Users'").fetchone() is not None
+
+    if initialised:
         print("[INFO] Existing database found. Skipping init.")
+    else:
+        print("[INIT] No database found. Initialising...")
+        init_db()
 
 #  Ensure this is called when app is imported
 ensure_db_exists()
