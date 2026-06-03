@@ -11,6 +11,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      TARGET_RENDER_URL: ${{ github.ref_name == 'main' && secrets.RENDER_DEPLOY_HOOK_PRD  || secrets.RENDER_DEPLOY_HOOK_TEST }}
     steps:
       - name: Get the code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
@@ -27,4 +29,12 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/nuvial/ar-ems-l6:${{ github.ref_name == 'main' && 'latest' || 'test'}}
+          tags: ghcr.io/nuvial/ar-ems-l6:${{ github.ref_name == 'main' && 'latest' || 'test' }}
+      
+      - name: Deploy to render
+        if: github.ref_name == 'main'
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "$TARGET_RENDER_URL"
