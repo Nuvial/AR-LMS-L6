@@ -32,7 +32,6 @@ jobs:
           tags: ghcr.io/nuvial/ar-ems-l6:${{ github.ref_name == 'main' && 'latest' || 'test' }}
       
       - name: Deploy to render
-        if: github.ref_name == 'main'
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_TOKEN }}" \
