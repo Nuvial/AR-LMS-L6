@@ -85,5 +85,22 @@ def ensure_db_exists():
 #  Ensure this is called when app is imported
 ensure_db_exists()
 
+@app.context_processor
+def inject_env_info():
+    validEnvironments = ["dev", "test", "production"]
+    validHosts = ["local", "primary", "secondary"]
+
+    environment = os.environ.get("APP_ENVIRONMENT")
+    appHost = os.environ.get("APP_HOST")
+
+    if ((environment == None or environment not in validEnvironments) or (appHost == None or appHost not in validHosts)):
+        raise Exception("APP_HOST or APP_ENVIRONMENT environment variables have not been defined")
+
+    return {
+        "env": environment,
+        "env_host": appHost,
+    }
+
+
 if __name__ == '__main__':
     app.run(debug=True)
