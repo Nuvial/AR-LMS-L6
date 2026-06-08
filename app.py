@@ -17,6 +17,9 @@ app.register_blueprint(employees, url_prefix='/employees')
 from routes.auth import auth
 app.register_blueprint(auth)
 
+from routes.about import about
+app.register_blueprint(about)
+
 from routes.stats import stats
 app.register_blueprint(stats, url_prefix='/stats')
 
