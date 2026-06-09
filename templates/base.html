@@ -13,54 +13,54 @@
     
     <!-- Base.css -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link href="{{ url_for ('static', filename='css/env_tag.css')}}" rel="stylesheet">
 
     
-    <title>NM EMS | {% block title %}{% endblock %}</title>
+    <title>AR LMS | {% block title %}{% endblock %}</title>
 </head>
-<body>
+<body class="shell">
     <div class="loader-backdrop" id="spinnerLoader">
         <div class="spinner-border" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('auth.dashboard') }}">NM</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-                <div class="navbar-nav">
-                    <a class="nav-link {% if active_page == 'dashboard'%}active{% endif %}" aria-current="page" href="{{ url_for('auth.dashboard') }}">Home</a>
+    <nav class="navbar sidebar bg-body-tertiary">
+        <a class="navbar-brand mb-3" href="{{ url_for('auth.dashboard') }}">AR LMS</a>
+    
+        <div class="navbar-nav flex-column w-100">
+            <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" aria-current="page" href="{{ url_for('auth.dashboard') }}">Home</a>
+            {% if current_user.admin %}
+            <a class="nav-link {% if active_page == 'view_records' %}active{% endif %}" href="{{ url_for('employees.index') }}">View Records</a>
+            <a class="nav-link {% if active_page == 'modify_records' %}active{% endif %}" href="{{ url_for('employees.modify_index') }}">Modify Records</a>
+            <a class="nav-link {% if active_page == 'process_leave' %}active{% endif %}" href="{{ url_for('leave.index') }}">Process Leave</a>
+            <a class="nav-link {% if active_page == 'modify_login' %}active{% endif %}" href="{{ url_for('users.index') }}">Modify Login Accounts</a>
+            {% else %}
+            <a class="nav-link {% if active_page == 'view_records' %}active{% endif %}" href="{{ url_for('employees.index') }}">View Record</a>
+            <a class="nav-link {% if active_page == 'process_leave' %}active{% endif %}" href="{{ url_for('leave.index') }}">Request Leave</a>
+            <a class="nav-link {% if active_page == 'modify_login' %}active{% endif %}" href="{{ url_for('users.index') }}">Modify Details</a>
+            {% endif %}
+        </div>
+    
+
+        <div class="sidebar-user mt-auto pt-3 dropup">
+            <a class="d-flex align-items-center gap-2 w-100 text-decoration-none user-toggle"
+            role="button" data-bs-toggle="dropdown" href="#" aria-expanded="false">
+                <span class="user-icon">
                     {% if current_user.admin %}
-                    <a class="nav-link {% if active_page == 'view_records'%}active{% endif %}" href="{{ url_for('employees.index') }}">View Records</a>
-                    <a class="nav-link {% if active_page == 'modify_records'%}active{% endif %}" href="{{ url_for('employees.modify_index') }}">Modify Records</a>
-                    <a class="nav-link {% if active_page == 'process_leave'%}active{% endif %}" href="{{ url_for('leave.index') }}">Process Leave</a>
-                    <a class="nav-link {% if active_page == 'modify_login'%}active{% endif %}" href="{{ url_for('users.index') }}">Modify Login Accounts</a>
+                    <i class="fas fa-user-tie"></i>
                     {% else %}
-                    <a class="nav-link {% if active_page == 'view_records'%}active{% endif %}" href="{{ url_for('employees.index') }}">View Record</a>
-                    <a class="nav-link {% if active_page == 'process_leave'%}active{% endif %}" href="{{ url_for('leave.index') }}">Request Leave</a>
-                    <a class="nav-link {% if active_page == 'modify_login'%}active{% endif %}" href="{{ url_for('users.index') }}">Modify Details</a>
+                    <i class="fas fa-user"></i>
                     {% endif %}
-                </div>
-            </div>
-            <div class="d-flex align-items-center">
-                <!-- Session Management -->
-                <span class="username-text">{{ current_user.username }}</span>
-                <div class="dropstart">
-                    <a class="d-flex align-items-center mx-3 user-icon" role="button" data-bs-toggle="dropdown" href="#" aria-expanded="false">
-                        {% if current_user.admin %}
-                        <i class="fas fa-user-tie"></i>
-                        {% else %}
-                        <i class="fas fa-user"></i>
-                        {% endif %}
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
-                    </ul>
-                </div>
-            </div>
+                </span>
+                <span class="username-text flex-grow-1 text-truncate">{{ current_user.username }}</span>
+                <i class="fas fa-chevron-up text-secondary"></i>
+            </a>
+            <ul class="dropdown-menu w-100">
+                <li><a class="dropdown-item" href="{{ url_for('about.aboutPage') }}" target='_blank' rel='noopener'>About</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+            </ul>
         </div>
     </nav>
 
@@ -71,36 +71,71 @@
     <!-- jQuery -->    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
-    <!-- Dynamic Flash Message Container -->
-    <div id="flash-container"></div>
+    <main class="container">
+        <script>
+            const current_user = {
+                id: "{{ current_user.id }}",
+                employee_id: "{{ current_user.employee_id }}",
+                username: "{{ current_user.username }}",
+                admin: "{{ current_user.admin }}"
+            }
+        </script>
 
-    <!-- Flash Messages from backend -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="top-stack">
+            <div class="tag-row">
+                <div class="return" style="display: none;">
+                    <button type="button" class="btn btn-primary py-0" onclick="history.back()">
+                        <i class="fa-solid fa-arrow-left fa-sm"></i> Back
+                    </button>
                 </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+                <div class="env-tag" data-env="{{ env }}" data-host="{{ env_host }}">
+                    <span>
+                        {% if env_host == 'secondary' %}
+                        Backup Host - {{ env.capitalize() }}
+                        {% else %}
+                        {{ env_host.capitalize() }} Host - {{ env.capitalize() }}
+                        {% endif %}
+                        <div class="info-icon"
+                            data-bs-toggle="tooltip" 
+                            data-bs-html="true"
+                            data-bs-title=
+                                "
+                                <strong>The application is running on the backup host (Render.com)</strong>
+                                <br><br>
+                                The primary server appears to be down or unreachable, so the app has failed-over to its secondary host.<br>
+                                <strong>Database persistence is limited</strong> recent changes may not be saved between host session restarts.<br>
+                                Learn more at <a href='https://render.com/docs/free#local-files-lost-on-redeploy' target='_blank' rel='noopener'>render.com</a>.
+                                <br><br>
+                                <em>Click the icon, or <a href='{{url_for('about.aboutPage')}}#sec-backup'>here</a>, for more info.</em>
+                                "
+                            data-href="{{ url_for('about.aboutPage') }}"
+                            onclick="redirect(this)"
+                            >
+                            <i class="fa-solid fa-circle-info fa-sm"></i>
+                        </div>
+                    </span>
+                </div>
+            </div>
 
-    <script>
-        const current_user = {
-            id: "{{ current_user.id }}",
-            employee_id: "{{ current_user.employee_id }}",
-            username: "{{ current_user.username }}",
-            admin: "{{ current_user.admin }}"
-        }
-    </script>
+            <!-- Dynamic Flash Message Container -->
+            <div id="flash-container"></div>
 
-    <div class="container">
+            <!-- Flash Messages from backend -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
         {% block content %}
         <!-- Content will be inserted here -->
         {% endblock %}
-    </div>
-    
-    
+    </main>
 </body>
 </html>

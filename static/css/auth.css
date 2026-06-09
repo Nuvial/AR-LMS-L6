@@ -7,8 +7,14 @@
 .square-box h1 {
     font-family: 'Roboto', sans-serif;
 }
-
-.alert{
+.square-box .btn-row {
+    position: relative;
+}
+.square-box .btn-row .help-btn {
     position: absolute;
-    top: 0;
+    left: 0;
+}
+.square-box .btn-row .register-btn {
+    position: absolute;
+    right: 0;
 }
