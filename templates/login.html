@@ -42,8 +42,9 @@
             {{ login_form.password(class="form-control") }}
             <a id="forgot_password" class="small" href="#">Forgot Password?</a>
         </div>
-        <div class="d-flex justify-content-end">
-            <a class="btn btn-secondary btn-sm mx-2" role="button" href="{{ url_for('auth.register') }}">Register</a>
+        <div class="btn-row d-flex justify-content-end gap-2">
+            <a class="help-btn btn btn-secondary btn-sm" role="button" href="{{ url_for('about.aboutPage') }}">Help</a>
+            <a class="btn btn-secondary btn-sm" role="button" href="{{ url_for('auth.register') }}">Register</a>
             {{ login_form.submit(class="btn btn-primary btn-sm") }}
         </div>
     </form>
