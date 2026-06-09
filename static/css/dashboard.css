@@ -3,18 +3,20 @@
 }
 div div.card {
     height: 100%;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, border 0.2s ease;
 }
 div div.card:hover{
-    background-color: orange;
+    background-color: rgba(255, 166, 0, 0.15);
     box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-    color: black;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.4s ease;
+    color: white;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, border 0.2s ease;
     transform: scale(1.03);
     cursor: pointer;
     text-decoration: underline;
+    border-left: 6px solid orange;
 }
 div div.card:hover .card-subtitle,
 div div.card:hover i.fas {
-    color: black;
+    color: white;
     transition: color 0.2s ease;
 }

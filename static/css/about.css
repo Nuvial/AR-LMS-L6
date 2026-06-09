@@ -120,6 +120,7 @@ header .lead-text {
     color: #fff;
     background: var(--accent-soft);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    border-left: 6px solid orange;
 }
 .about-record.active .record-sub{
     color: rgba(255, 255, 255, 0.6);
