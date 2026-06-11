@@ -290,3 +290,72 @@ function initTableToggle() {
         calendar.render();
     });
 }
+/**
+ * Change the location of the current browser to a new target location.
+ * The target location must be stored in the element as a data attribute under the name "href".
+ * 
+ * @param {HTMLElement} element
+ */
+function redirect(element) {
+        const href = $(element).data('href');
+        window.location.href = href;
+    }
+
+/**
+ * Initialises BootStrap tooltips using a jQuery selector.
+ * 
+ * @param {object} $selector jQuery object e.g., `$('.info-icon')`.
+ * @param {int} hideDelay The delay between the hide trigger, and the hide event beginning. Measured in ms.
+ * @param {int} fadeTime The length of time the fading of the popup should go on for when the hide event begins. Measured in ms.
+ */
+function initToolTips(
+    $selector,
+    hideDelay = 400, //ms
+    fadeTime = 200 // ms
+) {
+    // Manually activate the bootstrap info popover for interactivity
+    $selector.each(function() {
+        const $trigger = $(this);
+        const tooltip = new bootstrap.Tooltip(this, { trigger: 'manual', animation: false});
+        let hideTimer = null;
+        let fadeTimer = null;
+        let $tip = null;
+        let isShown = false;
+
+        const cancelHide = () => {
+            clearTimeout(hideTimer);
+            clearTimeout(fadeTimer);
+            if ($tip) $tip.css('opacity', 1);
+        };
+        const scheduleHide = () => {
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(fadeOut, hideDelay);
+        };
+        const fadeOut = () => {
+            if (!$tip) return tooltip.hide();
+            $tip.css('opacity', 0);
+            fadeTimer = setTimeout(() => tooltip.hide(), fadeTime);
+        }
+
+        $trigger
+            .on('mouseenter', () => {
+                cancelHide();
+                if (!isShown) tooltip.show();
+            })
+            .on('mouseleave', scheduleHide);
+        
+        $trigger
+            .on('inserted.bs.tooltip', function() {
+                $tip = $(`#${$(this).attr('aria-describedby')}`);
+                $tip.css({ transition: `opacity ${fadeTime}ms ease`, opacity: 0});
+            })
+            .on('shown.bs.tooltip', function() {
+                isShown = true;
+                if (!$tip) return;
+                $tip[0].offsetHeight;
+                $tip.css('opacity', 1);
+                $tip.on('mouseenter', cancelHide).on('mouseleave', scheduleHide);
+            })
+            .on('hidden.bs.tooltip', () => { isShown = false; $tip = null; });
+    });
+}
