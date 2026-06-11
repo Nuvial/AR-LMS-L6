@@ -70,6 +70,8 @@
     <script src="https://kit.fontawesome.com/fa4c14ad6c.js" crossorigin="anonymous"></script>
     <!-- jQuery -->    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <!-- Helpers -->
+    <script src="{{ url_for('static', filename='js/helpers.js') }}"></script>
 
     <main class="container">
         <script>
@@ -82,40 +84,7 @@
         </script>
 
         <div class="top-stack">
-            <div class="tag-row">
-                <div class="return" style="display: none;">
-                    <button type="button" class="btn btn-primary py-0" onclick="history.back()">
-                        <i class="fa-solid fa-arrow-left fa-sm"></i> Back
-                    </button>
-                </div>
-                <div class="env-tag" data-env="{{ env }}" data-host="{{ env_host }}">
-                    <span>
-                        {% if env_host == 'secondary' %}
-                        Backup Host - {{ env.capitalize() }}
-                        {% else %}
-                        {{ env_host.capitalize() }} Host - {{ env.capitalize() }}
-                        {% endif %}
-                        <div class="info-icon"
-                            data-bs-toggle="tooltip" 
-                            data-bs-html="true"
-                            data-bs-title=
-                                "
-                                <strong>The application is running on the backup host (Render.com)</strong>
-                                <br><br>
-                                The primary server appears to be down or unreachable, so the app has failed-over to its secondary host.<br>
-                                <strong>Database persistence is limited</strong> recent changes may not be saved between host session restarts.<br>
-                                Learn more at <a href='https://render.com/docs/free#local-files-lost-on-redeploy' target='_blank' rel='noopener'>render.com</a>.
-                                <br><br>
-                                <em>Click the icon, or <a href='{{url_for('about.aboutPage')}}#sec-backup'>here</a>, for more info.</em>
-                                "
-                            data-href="{{ url_for('about.aboutPage') }}"
-                            onclick="redirect(this)"
-                            >
-                            <i class="fa-solid fa-circle-info fa-sm"></i>
-                        </div>
-                    </span>
-                </div>
-            </div>
+            {% include "partials/env-tag.html" %}
 
             <!-- Dynamic Flash Message Container -->
             <div id="flash-container"></div>
