@@ -22,21 +22,10 @@
     <script src="{{url_for('static', filename='js/helpers.js')}}"></script>
 </head>
 <body class="vh-100 d-flex flex-column">
-    <div class="top-stack">
-        {% include 'partials/env-tag.html' %}
-
-        <!-- Message Alerts -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+    
+    {% include 'partials/env-tag.html' %}
+    {% include 'partials/alert.html' %}
+    
     <main class="flex-grow-1 d-flex justify-content-center align-items-center">
         {% block content %}{% endblock %}
     </main>

@@ -121,14 +121,6 @@ main {
     height: 3rem;
 }
 
-.alert{
-    position: absolute;
-    top: 5%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-}
-
 /* FullCalendar calendar library custom CSS */
 .fc-day-today {
     background-color: rgba(255, 166, 0, 0.2) !important;
