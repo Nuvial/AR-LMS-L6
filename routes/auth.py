@@ -33,7 +33,7 @@ def login():
             return redirect(url_for('auth.dashboard', active_page='dashboard'))
         
         flash('Either the username or password are incorrect. Please try again.', 'danger')
-    return render_template('login.html', login_form=login_form)
+    return render_template('pages/login.html', login_form=login_form)
 
 
 @auth.route('/register', methods=['GET', 'POST'])
@@ -48,19 +48,19 @@ def register():
         username_invalid = usernameTaken(username)
         if username_invalid:
             flash('Username already exists. Please pick a different username and try again.', 'danger')
-            return render_template('register.html', register_form=form)
+            return render_template('pages/register.html', register_form=form)
         
         #Check if employee_id is a valid id
         employee_id_valid = get_employees(employee_id)
         if not employee_id_valid:
             flash('Employee ID does not exist. Please ensure it is correct and try again. Otherwise, please ask an admin to add you to the system.', 'danger')
-            return render_template('register.html', register_form=form)
+            return render_template('pages/register.html', register_form=form)
         
         #Check if employee_id is already registered
         user_id_invalid = isEmployeeIdRegistered(employee_id)
         if user_id_invalid:
             flash('Employee ID is already registered to a username. Please ensure it is correct and try again.', 'danger')
-            return render_template('register.html', register_form=form)
+            return render_template('pages/register.html', register_form=form)
 
 
         # Register user
@@ -74,7 +74,7 @@ def register():
         if status['message'] == 'success':
             flash('Registration Successful! You may now log in.', 'success')
             return redirect(url_for('auth.login'))
-    return render_template('register.html', register_form=form)
+    return render_template('pages/register.html', register_form=form)
 
 
 @auth.route('/forgot_password/<user_id>', methods=['POST'])
@@ -107,4 +107,4 @@ def logout():
 @auth.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', active_page='dashboard')
+    return render_template('pages/dashboard.html', active_page='dashboard')

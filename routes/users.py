@@ -12,7 +12,7 @@ bcrypt = Bcrypt()
 @users.route('/')
 @login_required
 def index():
-    return render_template('users.html', active_page='modify_login')
+    return render_template('pages/users.html', active_page='modify_login')
 
 @users.route('/get_users', methods=['GET'])
 @users.route('/get_users/<int:user_id>', methods=['GET'])

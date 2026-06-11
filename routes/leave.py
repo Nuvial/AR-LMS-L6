@@ -9,7 +9,7 @@ leave = Blueprint('leave', __name__)
 @leave.route('/')
 @login_required
 def index():
-    return render_template('process-leave.html', active_page='process_leave')
+    return render_template('pages/process-leave.html', active_page='process_leave')
 
 
 @leave.route('/get_leave', methods=['GET'])
