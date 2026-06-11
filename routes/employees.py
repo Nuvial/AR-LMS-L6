@@ -9,13 +9,13 @@ employees = Blueprint('employees', __name__)
 @employees.route('/')
 @login_required
 def index():
-    return render_template('employees-view.html', active_page='view_records')
+    return render_template('pages/employees-view.html', active_page='view_records')
 
 @employees.route('/modify')
 @login_required
 @admin_required
 def modify_index():
-    return render_template('employees-modify.html', active_page='modify_records')
+    return render_template('pages/employees-modify.html', active_page='modify_records')
 
 @employees.route('/get_employees', methods=['GET'])
 @employees.route('/get_employees/<int:employee_id>', methods=['GET'])
