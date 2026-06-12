@@ -2,7 +2,7 @@ export default {
   async scheduled(event, env, ctx) {
     // Define maps of environemnt variables
     const endpoints = [env.PRIMARY_HEALTH_ENDPOINT, env.SECONDARY_HEALTH_ENDPOINT];
-    const renders = ['ar-ems-l6.onrender.com', 'ar-ems-l6-test.onrender.com'];
+    const renders = ['ar-lms-l6.onrender.com', 'ar-lms-l6-test.onrender.com'];
     const record_ids = [env.PRIMARY_RECORD_ID, env.SECONDARY_RECORD_ID];
 
     const tunnel = `${env.TUNNEL_UUID}.cfargotunnel.com`;
