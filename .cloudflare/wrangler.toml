@@ -5,3 +5,7 @@ workers_dev = false
 
 [triggers]
 crons = ["* * * * *"]
+
+[observability.logs]
+enabled = true
+invocation_logs = true
