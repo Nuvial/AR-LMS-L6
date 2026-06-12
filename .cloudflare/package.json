@@ -1,5 +1,5 @@
 {
-    "name": "ar-ems-l6-failover-cron", 
+    "name": "ar-lms-l6-failover-cron", 
     "private": true,
     "devDependencies": 
     { 
