@@ -92,4 +92,13 @@
         {% endblock %}
     </main>
 </body>
+<script>
+    // Parse any cached message flashes
+    const flash = localStorage.getItem('flashMessage');
+    if (flash){
+        const { message, type } = JSON.parse(flash);
+        flashMessage(message, type, 3000);;
+        localStorage.removeItem('flashMessage');
+    }
+</script>
 </html>
