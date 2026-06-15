@@ -17,6 +17,11 @@ def index():
 def modify_index():
     return render_template('pages/employees-modify.html', active_page='modify_records')
 
+@employees.route('/get_employees/self')
+@login_required
+def get_current_employee():
+    return get_employees_route(current_user.employee_id)
+
 @employees.route('/get_employees', methods=['GET'])
 @employees.route('/get_employees/<int:employee_id>', methods=['GET'])
 @login_required
@@ -71,6 +76,25 @@ def add_employee_route():
                 return jsonify({"message": "Employee added successfully", 'employee_id': status['employee_id']}), 201
             else:
                 return jsonify({"error": "Failed to add employee"}), 500
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+@employees.route('/update_employee/self', methods=['PUT'])
+@login_required
+def updateEmployeeSelf():
+    """
+    Route to update self employee record.
+    Args:
+        employee_id (int): Employee ID to update.
+    """
+    if request.method == 'PUT':
+        employee_data = request.get_json()
+        try:
+            status = update_employee(current_user.id, employee_data)
+            if status == 'success':
+                return jsonify({"message": "Employee updated successfully"}), 200
+            else:
+                return jsonify({"error": "Failed to update employee"}), 500
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 

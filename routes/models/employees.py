@@ -1,4 +1,5 @@
 from db import get_db
+from flask_login import current_user
 
 # Employee Table CRUD operations
 def add_employee(data):
@@ -58,13 +59,21 @@ def get_employees(employee_id=None):
     try:
         # Create base query
         query = """
-            SELECT * FROM Employees
+            SELECT
+                e.*,
+                t.name AS team_name,
+                t.fk_manager_id,
+                m.first_name AS manager_first_name,
+                m.last_name AS manager_last_name
+            FROM Employees e
+            LEFT JOIN Team t ON e.fk_team_id = t.pk_team_id
+            LEFT JOIN Employees m ON m.pk_employee_id = t.fk_manager_id
         """
         values = ()
 
         if (employee_id):
             # Add condition to base query if id is provided
-            query += " WHERE pk_employee_id = ?"
+            query += " WHERE e.pk_employee_id = ?"
             values = (employee_id,)
         
         # Execute the query
@@ -97,14 +106,21 @@ def update_employee(employee_id, data):
         if not isinstance(data, dict):
             raise TypeError('Data must be a dictionary.')
 
-        # Define valid fields that can be updated
-        valid_fields = [
-            'first_name',
-            'last_name',
-            'employee_position',
-            'default_leave_balance',
-            'default_sick_leave_balance',
-        ]
+        # Define valid fields that can be updated. If user is not an admin they can only change their own first_name and last_name
+        if (employee_id == current_user.id and not current_user.admin):
+            valid_fields = [
+                'first_name',
+                'last_name'
+            ]
+        else:
+            valid_fields = [
+                'first_name',
+                'last_name',
+                'employee_position',
+                'default_leave_balance',
+                'default_sick_leave_balance',
+            ]
+        
         fields_to_update = []
         values = []
 

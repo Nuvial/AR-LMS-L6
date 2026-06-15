@@ -1,12 +1,22 @@
+-- Team Table
+CREATE TABLE Team (
+    pk_team_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fk_manager_id INTEGER DEFAULT NULL,
+    name TEXT NOT NULL,
+    FOREIGN KEY (fk_manager_id) REFERENCES Employees(pk_employee_id)
+);
+
 -- Employees Table
 CREATE TABLE Employees (
     pk_employee_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fk_team_id INTEGER DEFAULT NULL,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     default_leave_balance REAL NOT NULL DEFAULT 25, -- Base leave balance for all employees,
     default_sick_leave_balance REAL NOT NULL DEFAULT 5, -- Base sick leave balance for all employees
-    employee_position TEXT NOT NULL  /* Team Lead, Developer, Designer, etc.
+    employee_position TEXT NOT NULL,  /* Team Lead, Developer, Designer, etc.
     Would ideally be stored in a lookup table, but assignment limits to 4 tables maximum. */
+    FOREIGN KEY (fk_team_id) REFERENCES Team(pk_team_id)
 );
 
 -- Employee Stats Table

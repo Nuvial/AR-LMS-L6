@@ -14,6 +14,16 @@ bcrypt = Bcrypt()
 def index():
     return render_template('pages/users.html', active_page='modify_login')
 
+@users.route('/settings')
+@login_required
+def settings():
+    return render_template('pages/profile-settings.html', active_page='profile_settings')
+
+@users.route('/get_users/self')
+@login_required
+def get_current_user():
+    return getEmployeesRoute(current_user.id)
+
 @users.route('/get_users', methods=['GET'])
 @users.route('/get_users/<int:user_id>', methods=['GET'])
 @login_required
@@ -113,6 +123,19 @@ def demoteUserRoute(user_id):
         else:
             return {'message': 'error'}
 
+@users.route('/delete_user/self', methods=['DELETE'])
+@login_required
+def deleteUserSelf():
+    """
+    Route to delete a users own account
+    """
+    if request.method == 'DELETE':
+        delete = deleteUser(current_user.id)
+        if delete == 'success':
+            return {'message': 'success'}
+        else:
+            return {'message': 'error'}
+
 @users.route('/delete_user/<int:user_id>', methods=['DELETE'])
 @login_required
 @admin_required
@@ -137,6 +160,22 @@ def changePasswordRoute(user_id):
         data = request.get_json()
         hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
         change = changePassword(user_id, hashed_password)
+        if change == 'success':
+            return {'message': 'success'}
+        else:
+            return {'message': 'error'}
+
+@users.route('/change_username/self', methods=['PUT'])
+@login_required
+def changeUsernameSelf():
+    """
+    Route to change a username from the settings page for self
+    """
+    if request.method == 'PUT':
+        data = request.get_json()
+        username = data['username']
+
+        change = changeUsername(current_user.id, username)
         if change == 'success':
             return {'message': 'success'}
         else:

@@ -1,0 +1,203 @@
+{% extends "layouts/base.html" %}
+{% block title %} Profile Settings {% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+
+{% include 'partials/password.html' %}
+{% include 'partials/revert-modal.html' %}
+{% include 'partials/warning-modal.html' %}
+
+<div class="main-content-wrapper">
+    <div class="card settings-container">
+        <div class="card-header">
+            <div class="user-id">
+                <span>
+                    User ID: {{ current_user.id }}
+                </span>
+            </div>
+            <h5 class="card-title mb-0">Profile Settings</h5>
+            <div class="edit-container">
+                <button class="btn btn-primary btn-sm edit" onclick="toggleEdit()">
+                    Edit
+                    <i class="fas fa-pen-to-square fa-lg"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm cancel" onclick="cancelEdit()">
+                    Cancel
+                    <i class="fas fa-arrow-rotate-left"></i>
+                </button>
+                <button class="btn btn-primary btn-sm save" onclick="saveEdit()">
+                    Save
+                    <i class="fas fa-floppy-disk fa-lg"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="profileForm" class="needs-validation" novalidate>
+                <div class="section">
+                    <div class="left-section">
+                        <div class="profile-picture-container">
+                            <div class="profile-picture">
+                                {% if current_user.admin %}
+                                <i class="fas fa-user-tie"></i>
+                                {% else %}
+                                <i class="fas fa-user"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="right-section">
+                        <div class="input-row">
+                            <div class="form-floating">
+                                <input id="firstName" class="form-control editable" disabled placeholder="First Name" name="firstName">
+                                <label for="firstName">First Name</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-floating">
+                                <input id="lastName" class="form-control editable" disabled placeholder="Last Name" name="lastName">
+                                <label for="lastName">Last Name</label>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="form-floating">
+                            <input id="position" class="form-control" disabled placeholder="Position">
+                            <label for="position">Position</label>
+                        </div>
+                        <div class="input-group">
+                            <span id="employeeId" class="input-group-text">Employee ID</span>
+                            <input class="form-control" disabled value="{{ current_user.employee_id }}">
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="section">
+                    <div class="left-section">
+                        <div class="heading">
+                            Team
+                        </div>
+                    </div>
+                    <div class="right-section">
+                        <div class="form-floating">
+                            <input id="lineManager" class="form-control" disabled placeholder="Line Manager">
+                            <label for="lineManager">Line Manager</label>
+                        </div>
+                        <div class="form-floating">
+                            <input id="team" class="form-control" disabled placeholder="Team">
+                            <label for="team">Team</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="section">
+                    <div class="left-section">
+                        <div class="heading">
+                            Account
+                        </div>
+                    </div>
+                    <div class="right-section">
+                        <div class="form-floating">
+                            <input id="username" class="form-control editable" disabled placeholder="Username" autocomplete="off" value="{{ current_user.username }}" name="username">
+                            <label for="username">Username</label>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <button type="button" id="changePassword" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#passwordModal"> Change Password </button>
+                        <hr>
+                        <button type="button" id="deleteAccount" class="btn btn-outline-danger"> Delete Account </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/users/profile.js') }}"></script>
+<script>
+    profile.originalData.username = '{{ current_user.username }}'
+    var editing = false;
+
+    $(document).ready(function() {
+        loadData();
+        updateEditState();
+    });
+    async function loadData() {
+        await loadProfile().then(updateForm);
+    }
+
+    function toggleEdit() {
+        editing = !editing;
+        $('.edit-container').toggleClass('editing', editing);
+
+        updateEditState();
+    };
+    function updateEditState() {
+        $('.editable').prop('disabled', !editing);
+    }
+
+    function cancelEdit() {
+        if (profile.modified()) {
+            $('#revertModal').modal('show');
+            return
+        }
+        toggleEdit();
+    }
+    async function saveEdit() {
+        if (!profile.modified()) {
+            toggleEdit();
+            return
+        }
+        await validateFields().then(async (valid) => {
+            if (!valid) return
+            await updateData().then(() => {
+                toggleEdit();
+                loadData();
+            });
+        });
+    }
+
+    $('#profileForm').on('input', (e) => {
+        const $input = $(e.target);
+        const value = $input.val();
+        const id = $input.attr('id');
+
+        // Update the profile object
+        profile.newData[id] = value;
+    });
+    $('#revertChangesConfirm').on('click', async () => {
+        await loadData().then(() => {
+            toggleEdit();
+            $('.modal.show').modal('hide');
+        });
+    });
+    $('#confirmPassword').on('click', () => {
+        $('.modal.show').modal('hide');
+        $('#confirmPasswordChange').modal('show');
+    });
+    $('#confirmPasswordChangeBtn').on('click', () => {
+        const password = $('#tempPassword').val();
+        changePassword(current_user.id, password);
+        $('#tempPassword').val('');
+    });
+    $('#deleteAccount').on('click', () => {
+        const modal = $('#deleteWarning');
+        // Set title & description
+        modal.find('.modal-title').text('Delete Account?');
+        modal.find('.modal-body').empty().append(
+            `
+                <h5 class="warning-header">Are you sure you want to delete your account?</h5> <br>
+                <div class="warning-callout">
+                    <i class="fas fa-triangle-exclamation"></i><strong>Note:</strong> 
+                    This action will delete the <strong>current login account</strong>.
+                    The employee profile (containing the booked leave, remaining leave, position, etc) is maintained
+                    by your line manager and/or the system administrator.
+                </div>
+            `
+        );
+        modal.modal('show');
+    });
+    $('#confirmDeleteBtn').on('click', deleteProfile);
+</script>
+{% endblock %}
