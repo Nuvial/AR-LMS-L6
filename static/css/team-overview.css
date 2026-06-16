@@ -1,0 +1,22 @@
+.main-content-wrapper {
+    display: flex;
+    flex: 1 0 auto;
+    min-height: 0;
+    padding: 2rem 0 2rem;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.card.teams {
+    width: 100%;
+}
+.card.teams .card-header {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.card.teams .card-header #createTeam {
+    position: absolute;
+    left: 1rem;
+}
