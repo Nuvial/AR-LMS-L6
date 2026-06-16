@@ -311,12 +311,13 @@ function populateUserTable(users) {
 
 function getActionIcons(isAdmin, isCurrentUser, forgotPasswordClass) {
     if (isCurrentUser) {
-        return `
-            <i class="fas fa-square-pen fa-xl" title="Change username."></i>
-            <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
-            <i class="fas fa-trash fa-xl" style="visibility: hidden;" title="Delete account."></i>
-            <i class="fas fa-crown fa-xl" style="visibility: hidden;" title="Promote account."></i>
-        `;
+        return ''
+        // `
+        //     <i class="fas fa-square-pen fa-xl" title="Change username."></i>
+        //     <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
+        //     <i class="fas fa-trash fa-xl" style="visibility: hidden;" title="Delete account."></i>
+        //     <i class="fas fa-crown fa-xl" style="visibility: hidden;" title="Promote account."></i>
+        // `;
     }
 
     if (isAdmin) {

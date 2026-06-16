@@ -5,6 +5,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/users.css') }}">
 
 {% include 'partials/password.html' %}
+{% include 'partials/warning-modal.html' %}
+
 <div class="modal fade" id="confirmAccount" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -42,8 +44,6 @@
         </div>
     </div>
 </div>
-
-{% include 'partials/warning-modal.html' %}
 
 <div class="modal fade" id="confirmPromote" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">

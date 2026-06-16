@@ -34,7 +34,10 @@
             <a class="nav-link {% if active_page == 'view_records' %}active{% endif %}" href="{{ url_for('employees.index') }}">View Records</a>
             <a class="nav-link {% if active_page == 'modify_records' %}active{% endif %}" href="{{ url_for('employees.modify_index') }}">Modify Records</a>
             <a class="nav-link {% if active_page == 'process_leave' %}active{% endif %}" href="{{ url_for('leave.index') }}">Process Leave</a>
-            <a class="nav-link {% if active_page == 'modify_login' %}active{% endif %}" href="{{ url_for('users.index') }}">Modify Login Accounts</a>
+            <hr>
+            <a class="nav-link {% if active_page == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('auth.admin_dashboard')}}">Admin Dashboard</a>
+            <a class="nav-link {% if active_page == 'modify_login' %}active{% endif %}" href="{{ url_for('users.index') }}">Login Accounts</a>
+            <a class="nav-link {% if active_page == 'teams' %}active{% endif %}" href="{{ url_for('teams.index') }}">Team Management</a>
             {% else %}
             <a class="nav-link {% if active_page == 'view_records' %}active{% endif %}" href="{{ url_for('employees.index') }}">View Record</a>
             <a class="nav-link {% if active_page == 'process_leave' %}active{% endif %}" href="{{ url_for('leave.index') }}">Request Leave</a>

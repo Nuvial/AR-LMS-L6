@@ -26,6 +26,9 @@ app.register_blueprint(stats, url_prefix='/stats')
 from routes.leave import leave
 app.register_blueprint(leave, url_prefix='/leave')
 
+from routes.teams import teams
+app.register_blueprint(teams, url_prefix='/teams')
+
 from routes.users import users
 app.register_blueprint(users, url_prefix='/users')
 
