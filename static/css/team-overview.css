@@ -1,6 +1,6 @@
 .main-content-wrapper {
     display: flex;
-    flex: 1 0 auto;
+    flex: 1;
     min-height: 0;
     padding: 2rem 0 2rem;
     justify-content: center;
@@ -9,6 +9,9 @@
 
 .card.teams {
     width: 100%;
+    min-width: 0;
+    max-height: 100%;
+    min-height: 0;
 }
 .card.teams .card-header {
     position: relative;
@@ -19,4 +22,159 @@
 .card.teams .card-header #createTeam {
     position: absolute;
     left: 1rem;
+}
+.card.teams .card-body {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-y: hidden;
+    overflow-x: auto;
+    width: 100%;
+    justify-content: start;
+}
+.card.teams .card-body .sticky-search {
+    background-color: var(--bs-body-bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.card.teams .card-body .table-scroll {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+}
+.card.teams .card-body .table-scroll thead th {
+    position: sticky;
+    top: 0;
+    background-color: var(--bs-body-bg);
+    z-index: 5;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#newTeamForm {
+    position: relative;
+    min-height: 0;
+    display: flex;
+}
+#newTeamForm table td input {
+    text-align: center;
+}
+#newTeamForm table select {
+    text-align: center;
+}
+#newTeamForm table select .default {
+    border-bottom: 1px solid;
+    padding-bottom: 3px;
+}
+
+.no-teams {
+    text-align: center;
+    font-size: large;
+    font-weight: bold;
+}
+
+/* Custom selectpicker styling */
+.bootstrap-select .btn-outline-custom {
+    font-weight: 400;
+    background-color: var(--bs-body-bg);
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    font-size: .875rem;
+    border-radius: var(--bs-border-radius-sm);
+}
+.bootstrap-select .filter-option {
+    text-align: center !important;
+}
+.bootstrap-select .filter-option .option-employee-name {
+    text-align: center !important;
+}
+.bootstrap-select .filter-option .option-employee-id {
+    display: none;
+}
+
+.bootstrap-select .popover-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+.bootstrap-select .popover-header button {
+    display: none;
+}
+.bootstrap-select .bs-searchbox .form-control {
+    min-height: calc(1.5em + .5rem + calc(var(--bs-border-width) * 2));
+    padding: .25rem .5rem;
+    font-size: .875rem;
+    border-radius: var(--bs-border-radius-sm);
+}
+
+.bootstrap-select .dropdown-item .text {
+    display: block;
+    width: 100%;
+}
+.bootstrap-select li {
+    --bs-dropdown-link-active-bg: orange !important;
+}
+.bootstrap-select .dropdown-menu li.selected a {
+    background-color: rgb(255, 166, 0);
+    color: black;
+}
+.bootstrap-select .dropdown-menu li.selected a:active {
+    background-color: rgb(255, 166, 0);
+    color: black;
+}
+.bootstrap-select .dropdown-menu li.selected a .bs-ok-default.check-mark{
+    display: none;
+}
+.bootstrap-select .bs-actionsbox .btn-group {
+    padding-top: 0.75rem;
+    width: 100%;
+}
+.bootstrap-select .bs-actionsbox .btn-group button {
+    background-color: transparent;
+    border-color: var(--bs-secondary);
+    color: var(--bs-secondary);
+    transition: background-color .15s, border-color .15s, color .15s;
+}
+.bootstrap-select .bs-actionsbox .btn-group button:hover {
+    background-color: rgb(255, 166, 0);
+    border-color: black;
+    color: black;
+}
+
+.option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+.option .option-employee-name {
+    flex: 1;
+    text-align: right;
+}
+.option .option-employee-id {
+    font-weight: bold;
+    font-size: small;
+}
+.editing-action-btns {
+    display: flex;
+    gap: 5px;
+    align-items: start;
+    justify-content: stretch;
+}
+.editing-action-btns .btn {
+    flex: 1;
+    min-width: 0;
+}
+.editing-action-btns .btn-outline-primary {
+    border-color: orange;
+    border-right-color: orange;
+    color: orange;
+}
+.editing-action-btns .btn-outline-primary:hover {
+    background-color: orange;
+    color: black;
 }
