@@ -78,9 +78,23 @@ class Team {
     }
 
     drawNewTeamRow(employeesList = []) {
-        function buildSelectPicker(options, config) {
-            return `
-                <select name="manager_name" class="selectpicker" 
+        function disableOptions($targetSelect, $target) {
+            const $currentDisabled = $target.prop('disabled');
+            const $disabled = $targetSelect.find('[disabled]');
+            
+            $disabled.prop('disabled', false);
+            $target.prop('disabled', true);
+
+            // TODO: Remove and replace with .selectpicker('refresh') when Selectpicker beta3 fixes method as currently has bugs
+            // https://github.com/snapappointments/bootstrap-select/issues/2738
+            $targetSelect
+                .selectpicker('destroy')
+                .selectpicker( {countSelectedText: (n) => n + ' Employees'} )
+        }
+
+        function $buildSelectPicker(options, config, onChange) {
+            return $(`
+                <select id="${config.elementName}" name="${config.elementName}" class="selectpicker" 
                     data-live-search="${config.liveSearch}"
                     data-live-search-normalize="true"
                     data-live-search-style="contains"
@@ -89,17 +103,18 @@ class Team {
                     data-style="btn-sm btn-outline-custom"
                     data-show-tick="false"
                     data-selected-text-format="count"
+                    data-container="body"
                     ${config.multiple ? 'multiple' : ''}
                     >
                     <option data-divider="true">
                     ${options}
                 </select>
-            `
+            `).on('change', onChange);
         }
-
 
         let employeeOptions = '';
         let enableSearch = true;
+        let newRowHtml;
 
         if (employeesList.length > 0) {
             for (let employee of employeesList) {
@@ -125,41 +140,66 @@ class Team {
             enableSearch = false;
         }
 
-        return `
+        // Build the dynamic new team row
+        newRowHtml = $(`
             <tr>
                 <td class="placeholder-glow"><span class="placeholder col-4"></span></td>
-                <td><input class="form-control form-control-sm editable"></td>
+                <td><input class="form-control form-control-sm editable" placeholder="Team Name..."></td>
                 <td class="placeholder-glow"><span class="placeholder col-4"></span></td>
-                <td>
-                    ${buildSelectPicker(
-                        employeeOptions,
-                        {
-                            liveSearch: true,
-                            placeholder: 'Search Employees...',
-                            actionsBox: false,
-                            multiple: false,
-                        }
-                    )}
-                </td>
-                <td>
-                    ${buildSelectPicker(
-                        employeeOptions,
-                        {
-                            liveSearch: true,
-                            placeholder: 'Search Employees...',
-                            actionsBox: true,
-                            multiple: true,
-                        }
-                    )}
-                </td>
+                <td class="manager-name"></td>
+                <td class="team-employees"></td>
                 <td style="min-width: 170px;">
                     <div class="editing-action-btns">
                         <button type="button" class="btn btn-outline-primary btn-sm">Save</button>
                         <button type="button" class="btn btn-outline-secondary btn-sm">Cancel</button>
                     </div>
                 </td>
-            </tr>
-        `
+            </tr>`
+        )
+
+        // Attach custom selectpickers with event listeners to the relevant fields
+        newRowHtml.find('.manager-name').append(
+            $buildSelectPicker(
+                employeeOptions,
+                {
+                    elementName: 'manager_name',
+                    liveSearch: true,
+                    placeholder: 'Search Employees...',
+                    actionsBox: false,
+                    multiple: false,
+                },
+                (e) => {
+                    const value = e.target.value;
+                    const $employees = $('#team_employees');
+                    const $target = $employees.find(`[value="${value}"]`);
+                    disableOptions($employees, $target);
+                }
+            )
+        )
+        newRowHtml.find('.team-employees').append(
+            $buildSelectPicker(
+                employeeOptions,
+                {
+                    elementName: 'team_employees',
+                    liveSearch: true,
+                    placeholder: 'Search Employees...',
+                    actionsBox: true,
+                    multiple: true,
+                },
+                (e) => {
+                    const values = $(e.target.selectedOptions);
+                    const $manager = $('#manager_name');
+                    let targetElements = [];
+                    values.each((_, el) => {
+                        targetElements.push($manager.find(`[value="${el.value}"]`)[0])
+                    });
+                    const $target = $(targetElements);
+                    disableOptions($manager, $target);
+                }
+            )
+        )
+
+        return newRowHtml;
     }
 
     drawRow() {

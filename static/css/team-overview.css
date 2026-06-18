@@ -38,14 +38,7 @@
     top: 0;
     z-index: 10;
 }
-.card.teams .card-body .table-scroll {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    max-height: 100%;
-    overflow-y: auto;
-}
-.card.teams .card-body .table-scroll thead th {
+.card.teams .card-body thead th {
     position: sticky;
     top: 0;
     background-color: var(--bs-body-bg);
@@ -53,11 +46,17 @@
     text-align: center;
     vertical-align: middle;
 }
+.card.teams .card-body table td {
+    text-align: center;
+    vertical-align: middle;
+}
 
 #newTeamForm {
-    position: relative;
-    min-height: 0;
     display: flex;
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 #newTeamForm table td input {
     text-align: center;
@@ -118,6 +117,10 @@
 .bootstrap-select li {
     --bs-dropdown-link-active-bg: orange !important;
 }
+.bootstrap-select.bs-container .dropdown-menu {
+    max-width: 400px;
+    overflow-x: auto;
+}
 .bootstrap-select .dropdown-menu li.selected a {
     background-color: rgb(255, 166, 0);
     color: black;
@@ -143,6 +146,12 @@
     background-color: rgb(255, 166, 0);
     border-color: black;
     color: black;
+}
+.bootstrap-select .no-results {
+    background-color: transparent;
+    text-overflow: ellipsis;
+    overflow: auto;
+    text-wrap: wrap;
 }
 
 .option {
