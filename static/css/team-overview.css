@@ -20,8 +20,13 @@
     align-items: center;
 }
 .card.teams .card-header #createTeam {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     position: absolute;
     left: 1rem;
+    transition: opacity .15s;
 }
 .card.teams .card-body {
     display: flex;
@@ -152,6 +157,12 @@
     text-overflow: ellipsis;
     overflow: auto;
     text-wrap: wrap;
+}
+.bootstrap-select.is-invalid .dropdown-toggle {
+    border-color: var(--bs-form-invalid-border-color, #dc3545);
+}
+.bootstrap-select.is-invalid .dropdown-toggle:focus {
+    box-shadow: 0 0 0 .25rem rgba(var(--bs-danger-rgb, 220, 53, 69), .25);
 }
 
 .option {

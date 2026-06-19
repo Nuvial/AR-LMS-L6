@@ -1,5 +1,5 @@
 import os
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, g
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 
@@ -88,8 +88,11 @@ def ensure_db_exists():
         print("[INIT] No database found. Initialising...")
         init_db()
 
-#  Ensure this is called when app is imported
-ensure_db_exists()
+@app.teardown_appcontext
+def close_db(exception=None):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 @app.context_processor
 def inject_env_info():
@@ -107,6 +110,6 @@ def inject_env_info():
         "env_host": appHost,
     }
 
-
+ensure_db_exists()
 if __name__ == '__main__':
     app.run(debug=True)

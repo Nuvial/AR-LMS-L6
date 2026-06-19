@@ -53,6 +53,7 @@ def getEmployees(teamId=None):
                 last_name,
                 employee_position
             FROM Employees
+            
         """
         values = ()
 
@@ -61,7 +62,9 @@ def getEmployees(teamId=None):
             query += " WHERE fk_team_id = ?"
             values = (teamId,)
         else:
-            query += " WHERE fk_team_id IS null"
+            query += """ 
+                WHERE fk_team_id IS NULL
+            """
         
         # Execute the query
         db = get_db()
@@ -70,80 +73,120 @@ def getEmployees(teamId=None):
         # Convert result into a dictionary
         employees = [dict(row) for row in employees]
 
-        return employees
+        return {'message': 'success', 'employees': employees}
+    except Exception as e:
+        return {'message': 'error', 'error': e}
+
+def getPossibleManagers():
+    """
+    Route to get all employees that are compatible to become a manager.
+    """
+    try:
+        # Create base query
+        query = """
+            SELECT
+                pk_employee_id,
+                first_name,
+                last_name,
+                employee_position
+            FROM Employees
+            WHERE pk_employee_id NOT IN (SELECT fk_manager_id FROM Team);
+        """
+        values = ()
+        
+        # Execute the query
+        db = get_db()
+        employees = db.execute(query).fetchall()
+
+        # Convert result into a dictionary
+        employees = [dict(row) for row in employees]
+
+        return {'message': 'success', 'employees': employees}
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
 
-# def deleteUser(user_id=None):
-#     """
-#     Model to delete a specific user.
-#     Args:
-#         user_id (int): User ID to delete.
-#     """
-#     try:
-#         # Create base query
-#         query = """
-#             DELETE FROM Users
-#             WHERE pk_user_id = ?
-#         """
-#         values = (user_id,)
+def getEmployeeManager(employeeId):
+    """
+    Route to get an employees manager.
+    """
+    try:
+        # Create base query
+        query = """
+            SELECT
+                m.pk_employee_id,
+                m.first_name,
+                m.last_name,
+                m.employee_position
+            FROM Employees m
+            JOIN Team t on m.pk_employee_id = t.fk_manager_id
+            JOIN Employees e on e.fk_team_id = t.pk_team_id
+            WHERE e.pk_employee_id = ?
+        """
+        values = (employeeId)
         
-#         # Execute the query
-#         db = get_db()
-#         db.execute("PRAGMA foreign_keys = ON") # Enable foreign keys for this connection
+        # Execute the query
+        db = get_db()
+        manager = db.execute(query, values).fetchall()
 
-#         db.execute(query, values)
-#         db.commit()
+        # Convert result into a dictionary
+        manager = [dict(row) for row in manager]
 
-#         return 'success'
-#     except Exception as e:
-#         raise Exception(f"An error occurred: {e}")
+        return manager
+    except Exception as e:
+        raise Exception(f"An error occurred: {e}")
 
-# def changePassword(id, password):
-#     """
-#     Changes a users password. The route should be protected by an admin-only login.
-#     Args:
-#         id (int): The User ID of the password to change.
-#         password (str): A hashed password to change to.
-#     """
-#     try:
-#         query = """
-#             UPDATE Users
-#             SET 
-#                 password = ?,
-#                 forgot_password = 0
-#             WHERE pk_user_id = ?
-#         """
-#         values = (password, id)
+def createTeam(teamName, managerId, employeeIds):
+    """
+    Creates a team record in the Team table for a new team.
+    """
+    try:
+        currentTeams = [str(team['fk_manager_id']) for team in getTeams()]
+        teamFreeEmployees = [str(employees['pk_employee_id']) for employees in getEmployees()['employees']]
 
-#         db = get_db()
-#         db.execute(query, values)
-#         db.commit()
+        # Ensure manager is not in the employee Ids
+        if (managerId in employeeIds): 
+            return {'message': 'error', 'error': 'Manager cannot be an employee to the team.'}
+        
+        # Ensure if manager is an employee in a different team, the employee is not their manager
+        if (managerId not in teamFreeEmployees):
+            managers = [str(manager['pk_employee_id']) for manager in getEmployeeManager(managerId)]
+            for manager in managers:
+                if (manager not in employeeIds): continue
+                return {'message': 'error', 'error': 'A team member cannot be a manager of the assigned manager.'}
+        
+        # Ensure manager is not already managing a different team
+        if (managerId in currentTeams):
+            return {'message': 'error', 'error': 'A manager can only manage one team at a time.'}
+        
+        # Ensure employees are not already in a different team
+        for employee in employeeIds:
+            if (str(employee) not in teamFreeEmployees):
+                return {'message': 'error', 'error': 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'}
+        
+        db = get_db()
 
-#         return 'success'
-#     except Exception as e:
-#         raise e
+        # Create query for Team
+        teamQuery = """
+            INSERT INTO Team (fk_manager_id, name) 
+            VALUES (?, ?)
+        """
+        teamValues = (managerId, teamName)
 
-# def changeUsername(id, username):
-#     """
-#     Changes a users username. The route should be protected by an admin-only login.
-#     Args:
-#         id (int): The User ID of the username to change.
-#         username (str): The new username to change to.
-#     """
-#     try:
-#         query = """
-#             UPDATE Users
-#             SET 
-#                 username = ?
-#             WHERE pk_user_id = ?
-#         """
-#         values = (username, id)
+        teamCursor = db.execute(teamQuery, teamValues)
+        teamId = teamCursor.lastrowid
 
-#         db = get_db()
-#         db.execute(query, values)
-#         db.commit()
+        # Create query for employees
+        employeeQuery = """
+            UPDATE Employees
+            SET
+                fk_team_id = ?
+            WHERE pk_employee_id = ?
+        """
+        employeeValues = [(teamId, employeeId) for employeeId in employeeIds]
 
-#         return 'success'
-#     except Exception as e:
-#         raise e
+        db.executemany(employeeQuery, employeeValues)
+        db.commit()
+
+        return {'message': 'success', 'pk_team_id': teamId}
+    except Exception as e:
+        return {'message': 'error', 'error': e}

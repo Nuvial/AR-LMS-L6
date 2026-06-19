@@ -16,7 +16,7 @@ CREATE TABLE Employees (
     default_sick_leave_balance REAL NOT NULL DEFAULT 5, -- Base sick leave balance for all employees
     employee_position TEXT NOT NULL,  /* Team Lead, Developer, Designer, etc.
     Would ideally be stored in a lookup table, but assignment limits to 4 tables maximum. */
-    FOREIGN KEY (fk_team_id) REFERENCES Team(pk_team_id)
+    FOREIGN KEY (fk_team_id) REFERENCES Team(pk_team_id) ON DELETE SET NULL
 );
 
 -- Employee Stats Table

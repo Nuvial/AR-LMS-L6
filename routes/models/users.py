@@ -54,7 +54,7 @@ def deleteUser(user_id=None):
         
         # Execute the query
         db = get_db()
-        db.execute("PRAGMA foreign_keys = ON") # Enable foreign keys for this connection
+        db.execute()
 
         db.execute(query, values)
         db.commit()

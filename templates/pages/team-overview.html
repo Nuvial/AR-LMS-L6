@@ -45,36 +45,14 @@
 
 <script src="{{ url_for('static', filename='js/teams/teams.js') }}"></script>
 <script>
-    let teams;
-
     $(document).ready(() => {
-        teams = new Teams();
-        if (teams.teams.length == 0) {
-            $('#teamTableBody').append(teams.drawEmptyRow());
-        }
+        teams.init(
+            $('#teamTableBody')
+        );
     });
 
     async function createTeam() {
-        const freeEmployees = await teams.getFreeEmployees(); 
-        const newTeam = new Team();
-        const $body = $('#teamTableBody');
-
-        const newRowHtml = newTeam.drawNewTeamRow(freeEmployees);
-
-        // Check if there are no teams currently
-        const $noTeam = $('.no-teams');
-        if ($noTeam.length > 0) {
-            $body.empty().append(newRowHtml);
-        } else { // Draw html as the first row
-            $body.find('tr').first().before(newRowHtml)
-        }
-
-        // Initialise seletpicker element
-        $($body).find('.selectpicker').selectpicker({
-            countSelectedText: function(selected, total) {
-                return selected + ' Employees';
-            }
-        });
+        teams.actions.newTeam();
     }
 </script>
 {% endblock %}
