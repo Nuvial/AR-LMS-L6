@@ -131,10 +131,10 @@ def deleteUserSelf():
     """
     if request.method == 'DELETE':
         delete = deleteUser(current_user.id)
-        if delete == 'success':
+        if delete['message'] == 'success':
             return {'message': 'success'}
         else:
-            return {'message': 'error'}
+            return {'message': 'error', 'error': delete['error']}
 
 @users.route('/delete_user/<int:user_id>', methods=['DELETE'])
 @login_required
@@ -145,10 +145,10 @@ def deleteUserRoute(user_id):
     """
     if request.method == 'DELETE':
         delete = deleteUser(user_id)
-        if delete == 'success':
+        if delete['message'] == 'success':
             return {'message': 'success'}
         else:
-            return {'message': 'error'}
+            return {'message': 'error', 'error': delete['error']}
 
 @users.route('/change_password/<int:user_id>', methods=['PUT'])
 @login_required

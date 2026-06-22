@@ -218,16 +218,22 @@ function deleteProfile(){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            console.log(resp)
+            // return
+            if (resp.message == 'success'){
                 localStorage.setItem('flashMessage', JSON.stringify({
                     message: 'Account deleted successfully.',
                     type: 'success',
                     length: 3000,
                 }));
+                window.location.href = '/';
+            } else if (resp.message == 'error') {
+                $('.modal.show').modal('hide');
+                flashMessage(resp.error, 'danger', 0);
             } else {
-                flashMessage('Error deleting account. Please try again', 'danger', 3000)
+                $('.modal.show').modal('hide');
+                flashMessage('Error deleting account. Please try again', 'danger', 0);
             }
-            window.location.href = '/';
         },
         complete: function(){
             hideLoader();

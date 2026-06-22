@@ -1,3 +1,4 @@
+from flask_login import current_user
 from db import get_db
 
 def getUsers(user_id=None):
@@ -45,6 +46,21 @@ def deleteUser(user_id=None):
         user_id (int): User ID to delete.
     """
     try:
+        db = get_db()
+
+        # Ensure if the user is an admin, that they are not the only admin as this will lock out any future admin accounts (since this comes from the admins themselves)
+        if current_user.admin and user_id == current_user.id:
+            validationQuery = """
+                SELECT 
+                    pk_user_id 
+                FROM Users
+                WHERE admin = 1 AND pk_user_id != ?
+            """
+            validationValues = (user_id,)
+            otherAdmins = db.execute(validationQuery, validationValues).fetchall()
+            if (len(otherAdmins) == 0):
+                return {'message': 'error', 'error': 'Unable to delete the only admin account. Please assign another admin before deleting this account.'}
+
         # Create base query
         query = """
             DELETE FROM Users
@@ -53,13 +69,12 @@ def deleteUser(user_id=None):
         values = (user_id,)
         
         # Execute the query
-        db = get_db()
         db.execute(query, values)
         db.commit()
 
-        return 'success'
+        return {'message': 'success'}
     except Exception as e:
-        raise Exception(f"An error occurred: {e}")
+        return {'message': 'error', 'error': str(e)}
 
 def changePassword(id, password):
     """
