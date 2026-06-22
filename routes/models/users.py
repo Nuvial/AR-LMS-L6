@@ -16,9 +16,11 @@ def getUsers(user_id=None):
                 b.last_name,
                 a.username,
                 a.forgot_password,
-                a.admin
+                r.name AS role,
+                CASE WHEN r.name = 'admin' THEN 1 ELSE 0 END AS admin
             FROM Users a
             JOIN Employees b ON a.fk_employee_id = b.pk_employee_id
+            JOIN Roles r ON b.fk_role_id = r.pk_role_id
             LEFT JOIN Team t ON b.fk_team_id = t.pk_team_id
         """
         values = ()
@@ -68,17 +70,17 @@ def deleteUser(user_id=None):
     try:
         db = get_db()
 
-        # Ensure if the user is an admin, that they are not the only admin as this will lock out any future admin accounts (since this comes from the admins themselves)
+        # Prevent deleting the last admin account
         if current_user.admin and user_id == current_user.id:
             validationQuery = """
-                SELECT 
-                    pk_user_id 
-                FROM Users
-                WHERE admin = 1 AND pk_user_id != ?
+                SELECT u.pk_user_id
+                FROM Users u
+                JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+                JOIN Roles r ON e.fk_role_id = r.pk_role_id
+                WHERE r.name = 'admin' AND u.pk_user_id != ?
             """
-            validationValues = (user_id,)
-            otherAdmins = db.execute(validationQuery, validationValues).fetchall()
-            if (len(otherAdmins) == 0):
+            otherAdmins = db.execute(validationQuery, (user_id,)).fetchall()
+            if len(otherAdmins) == 0:
                 return {'message': 'error', 'error': 'Unable to delete the only admin account. Please assign another admin before deleting this account.'}
 
         # Create base query

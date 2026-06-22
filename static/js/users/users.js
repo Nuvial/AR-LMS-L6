@@ -109,9 +109,12 @@ function promoteUser(user_id){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message == 'success'){
                 softRefresh()
                 flashMessage('User account promoted successfully.', 'success', 3000)
+            } else if (resp.message == 'error') {
+                softRefresh()
+                flashMessage(resp['error'], 'danger', 6000)
             } else {
                 softRefresh()
                 flashMessage('Error promoting user account. Please try again', 'danger', 3000)

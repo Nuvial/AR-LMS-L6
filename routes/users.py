@@ -104,10 +104,10 @@ def promoteUserRoute(user_id):
     """
     if request.method == 'PUT':
         upgrade = upgradeUser(user_id)
-        if upgrade == 'success':
-            return {'message': 'success'}
+        if upgrade['message'] == 'success':
+            return jsonify({'message': 'success'})
         else:
-            return {'message': 'error'}
+            return jsonify({'message': 'error', 'error': upgrade['error']})
         
 @users.route('/demote_user/<int:user_id>', methods=['PUT'])
 @login_required

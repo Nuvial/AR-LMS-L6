@@ -38,6 +38,11 @@
             <a class="nav-link {% if active_page == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('auth.admin_dashboard')}}">Admin Dashboard</a>
             <a class="nav-link {% if active_page == 'modify_login' %}active{% endif %}" href="{{ url_for('users.index') }}">Login Accounts</a>
             <a class="nav-link {% if active_page == 'teams' %}active{% endif %}" href="{{ url_for('teams.index') }}">Team Management</a>
+            {% elif current_user.is_manager %}
+            <a class="nav-link {% if active_page == 'view_records' %}active{% endif %}" href="{{ url_for('employees.index') }}">View Records</a>
+            <a class="nav-link {% if active_page == 'process_leave' %}active{% endif %}" href="{{ url_for('leave.index') }}">Process Leave</a>
+            <hr>
+            <a class="nav-link {% if active_page == 'modify_login' %}active{% endif %}" href="{{ url_for('users.index') }}">Login Accounts</a>
             {% else %}
             <a class="nav-link {% if active_page == 'view_records' %}active{% endif %}" href="{{ url_for('employees.index') }}">View Record</a>
             <a class="nav-link {% if active_page == 'process_leave' %}active{% endif %}" href="{{ url_for('leave.index') }}">Request Leave</a>
@@ -52,6 +57,8 @@
                 <span class="user-icon">
                     {% if current_user.admin %}
                     <i class="fas fa-user-tie"></i>
+                    {% elif current_user.is_manager %}
+                    <i class="fas fa-user-shield"></i>
                     {% else %}
                     <i class="fas fa-user"></i>
                     {% endif %}
@@ -83,7 +90,7 @@
                 id: "{{ current_user.id }}",
                 employee_id: "{{ current_user.employee_id }}",
                 username: "{{ current_user.username }}",
-                admin: "{{ current_user.admin }}",
+                admin: "{{ '1' if current_user.admin else '0' }}",
                 is_manager: "{{ '1' if current_user.is_manager else '0' }}"
             }
         </script>

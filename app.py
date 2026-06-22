@@ -3,7 +3,7 @@ from flask import Flask, redirect, url_for, g
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 
-from routes.models.auth import User, registerUser, upgradeUser, isEmployeeManager
+from routes.models.auth import User, registerUser, upgradeUser
 from db import get_db
 
 app = Flask(__name__)
@@ -50,9 +50,15 @@ def ping():
 def load_user(user_id):
     """Load user from the database using user_id."""
     db = get_db()
-    user = db.execute("SELECT * FROM Users WHERE pk_user_id = ?", (user_id,)).fetchone()
+    user = db.execute("""
+        SELECT u.*, r.name AS role
+        FROM Users u
+        JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+        JOIN Roles r ON e.fk_role_id = r.pk_role_id
+        WHERE u.pk_user_id = ?
+    """, (user_id,)).fetchone()
     if user:
-        return User(user['pk_user_id'], user['fk_employee_id'], user['username'], user['password'], user['admin'], isEmployeeManager(user['fk_employee_id']))
+        return User(user['pk_user_id'], user['fk_employee_id'], user['username'], user['password'], user['role'])
     return None
 
 # === Database Initialisation ===
@@ -80,10 +86,22 @@ def init_db():
 
 def ensure_db_exists():
     with app.app_context():
-        initialised = get_db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Users'").fetchone() is not None
+        db = get_db()
+        initialised = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Users'").fetchone() is not None
+        has_roles = initialised and db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Roles'").fetchone() is not None
 
     if initialised:
         print("[INFO] Existing database found. Skipping init.")
+        if has_roles:
+            with app.app_context():
+                db = get_db()
+                db.execute("""
+                    UPDATE Employees
+                    SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'manager')
+                    WHERE pk_employee_id IN (SELECT fk_manager_id FROM Team WHERE fk_manager_id IS NOT NULL)
+                    AND fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')
+                """)
+                db.commit()
     else:
         print("[INIT] No database found. Initialising...")
         init_db()

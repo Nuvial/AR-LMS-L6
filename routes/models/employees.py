@@ -27,10 +27,10 @@ def add_employee(data):
         leave_bal = data['default_leave_balance']
         sick_leave_bal = data['default_sick_leave_balance']
 
-        # Create query & set values
+        # Create query & set values (new employees default to 'employee' role)
         query = """
-            INSERT INTO Employees (first_name, last_name, default_leave_balance, default_sick_leave_balance, employee_position)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO Employees (first_name, last_name, default_leave_balance, default_sick_leave_balance, employee_position, fk_role_id)
+            VALUES (?, ?, ?, ?, ?, (SELECT pk_role_id FROM Roles WHERE name = 'employee'))
             """
         values = (first_name, last_name, leave_bal, sick_leave_bal, position)
 
@@ -61,11 +61,13 @@ def get_employees(employee_id=None):
         query = """
             SELECT
                 e.*,
+                r.name AS role,
                 t.name AS team_name,
                 t.fk_manager_id,
                 m.first_name AS manager_first_name,
                 m.last_name AS manager_last_name
             FROM Employees e
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
             LEFT JOIN Team t ON e.fk_team_id = t.pk_team_id
             LEFT JOIN Employees m ON m.pk_employee_id = t.fk_manager_id
         """

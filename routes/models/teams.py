@@ -53,7 +53,6 @@ def getEmployees(teamId=None):
                 last_name,
                 employee_position
             FROM Employees
-            
         """
         values = ()
 
@@ -63,7 +62,7 @@ def getEmployees(teamId=None):
             values = (teamId,)
         else:
             query += """ 
-                WHERE fk_team_id IS NULL
+                WHERE fk_team_id IS NULL AND fk_role_id = 3
             """
         
         # Execute the query
@@ -82,18 +81,21 @@ def getPossibleManagers():
     Route to get all employees that are compatible to become a manager.
     """
     try:
-        # Create base query
+        # Create base query — exclude current managers and admins
         query = """
             SELECT
-                pk_employee_id,
-                first_name,
-                last_name,
-                employee_position
-            FROM Employees
-            WHERE pk_employee_id NOT IN (SELECT fk_manager_id FROM Team);
+                e.pk_employee_id,
+                e.first_name,
+                e.last_name,
+                e.employee_position
+            FROM Employees e
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            WHERE e.pk_employee_id NOT IN (
+                SELECT fk_manager_id FROM Team WHERE fk_manager_id IS NOT NULL
+            )
+            AND r.name != 'admin';
         """
-        values = ()
-        
+
         # Execute the query
         db = get_db()
         employees = db.execute(query).fetchall()
@@ -162,12 +164,24 @@ def createTeam(teamName, managerId, employeeIds):
         for employee in employeeIds:
             if (str(employee) not in teamFreeEmployees):
                 return {'message': 'error', 'error': 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'}
-        
+
+        # Ensure no admin is added as a team employee
+        if employeeIds:
+            db_check = get_db()
+            placeholders = ','.join('?' * len(employeeIds))
+            admin_in_team = db_check.execute(f"""
+                SELECT e.pk_employee_id FROM Employees e
+                JOIN Roles r ON e.fk_role_id = r.pk_role_id
+                WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'
+            """, [int(eid) for eid in employeeIds]).fetchone()
+            if admin_in_team:
+                return {'message': 'error', 'error': 'Admins cannot be assigned as team employees.'}
+
         db = get_db()
 
         # Create query for Team
         teamQuery = """
-            INSERT INTO Team (fk_manager_id, name) 
+            INSERT INTO Team (fk_manager_id, name)
             VALUES (?, ?)
         """
         teamValues = (managerId, teamName)
@@ -185,6 +199,14 @@ def createTeam(teamName, managerId, employeeIds):
         employeeValues = [(teamId, employeeId) for employeeId in employeeIds]
 
         db.executemany(employeeQuery, employeeValues)
+
+        # Promote the manager to 'manager' role
+        db.execute("""
+            UPDATE Employees
+            SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'manager')
+            WHERE pk_employee_id = ?
+        """, (managerId,))
+
         db.commit()
 
         return {'message': 'success', 'pk_team_id': teamId}
@@ -196,6 +218,9 @@ def updateTeam(teamId, teamName, managerId, employeeIds):
     Updates a team record in the Team table for a new team.
     """
     try:
+        existingTeam = getTeams(teamId)
+        oldManagerId = existingTeam[0]['fk_manager_id'] if existingTeam else None
+
         currentTeams = [{team['pk_team_id']: str(team['fk_manager_id'])} for team in getTeams()]
         teamFreeEmployees = [str(employees['pk_employee_id']) for employees in getEmployees()['employees']]
         thisTeamEmployees = [str(employees['pk_employee_id']) for employees in getEmployees(teamId)['employees']]
@@ -221,6 +246,19 @@ def updateTeam(teamId, teamName, managerId, employeeIds):
         for employee in employeeIds:
             if ((str(employee['pk_employee_id']) not in teamFreeEmployees) and (str(employee['pk_employee_id']) not in thisTeamEmployees)):
                 return {'message': 'error', 'error': 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'}
+
+        # Ensure no admin is added as a team employee
+        if employeeIds:
+            emp_id_list = [int(e['pk_employee_id']) for e in employeeIds]
+            db_check = get_db()
+            placeholders = ','.join('?' * len(emp_id_list))
+            admin_in_team = db_check.execute(f"""
+                SELECT e.pk_employee_id FROM Employees e
+                JOIN Roles r ON e.fk_role_id = r.pk_role_id
+                WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'
+            """, emp_id_list).fetchone()
+            if admin_in_team:
+                return {'message': 'error', 'error': 'Admins cannot be assigned as team employees.'}
 
         db = get_db()
 
@@ -256,6 +294,20 @@ def updateTeam(teamId, teamName, managerId, employeeIds):
 
         db.execute(employeeQueryRemoval, employeeRemovalValues)
         db.executemany(employeeQuery, employeeValues)
+
+        # Sync roles if the manager changed
+        if oldManagerId and int(oldManagerId) != int(managerId):
+            db.execute("""
+                UPDATE Employees
+                SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')
+                WHERE pk_employee_id = ?
+            """, (oldManagerId,))
+        db.execute("""
+            UPDATE Employees
+            SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'manager')
+            WHERE pk_employee_id = ?
+        """, (managerId,))
+
         db.commit()
 
         return {'message': 'success', 'pk_team_id': teamId}
@@ -267,13 +319,24 @@ def deleteTeam(teamId):
     Deletes a team record in the Team table.
     """
     try:
+        existingTeam = getTeams(teamId)
+        managerId = existingTeam[0]['fk_manager_id'] if existingTeam else None
+
         db = get_db()
+
+        # Reset manager back to 'employee' role before deletion
+        if managerId:
+            db.execute("""
+                UPDATE Employees
+                SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')
+                WHERE pk_employee_id = ?
+            """, (managerId,))
 
         # Create query for Team
         teamQuery = """
-            DELETE FROM Team 
+            DELETE FROM Team
             WHERE pk_team_id = ?
-                
+
         """
         teamValues = (teamId,)
 

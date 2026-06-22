@@ -1,7 +1,7 @@
 from flask import request, jsonify, Blueprint, render_template
 from flask_login import login_required, current_user
 
-from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest, isLeaveInManagerTeam
+from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest, isLeaveInManagerTeam, getLeaveOwnerRole
 from .auth import admin_required, admin_or_manager_required
 
 leave = Blueprint('leave', __name__)
@@ -73,6 +73,8 @@ def approveLeaveRoute(leave_id):
     if request.method == 'PUT':
         if not current_user.admin and not isLeaveInManagerTeam(leave_id, current_user.employee_id):
             return jsonify({"error": "You can only approve leave for employees in your team."}), 403
+        if getLeaveOwnerRole(leave_id) == 'admin' and not current_user.admin:
+            return jsonify({"error": "Admin leave requests must be approved by another admin."}), 403
         comments = request.get_json()['comment']
         approve = approveLeave(leave_id, comments)
         if approve == 'success':
@@ -93,6 +95,8 @@ def denyLeaveRoute(leave_id):
     if request.method == 'PUT':
         if not current_user.admin and not isLeaveInManagerTeam(leave_id, current_user.employee_id):
             return jsonify({"error": "You can only deny leave for employees in your team."}), 403
+        if getLeaveOwnerRole(leave_id) == 'admin' and not current_user.admin:
+            return jsonify({"error": "Admin leave requests must be approved by another admin."}), 403
         comments = request.get_json()['comment']
         deny = denyLeave(leave_id, comments)
         if deny == 'success':
