@@ -54,8 +54,6 @@ def deleteUser(user_id=None):
         
         # Execute the query
         db = get_db()
-        db.execute()
-
         db.execute(query, values)
         db.commit()
 

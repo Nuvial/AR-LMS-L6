@@ -506,7 +506,8 @@ $('#userTableBody').on('click', '.actions .fas.fa-trash', function(){
     const employee_id = row.find('.employee-id-div').text();
     const user_id = row.data('user-id');
     const username = row.find('.username-div').text();
-
+    
+    modal.data('user-id', user_id);
     modal.find('.modal-title').text('Delete Account?')
     modal.find('.modal-body').empty().append(
         `
@@ -521,7 +522,7 @@ $('#userTableBody').on('click', '.actions .fas.fa-trash', function(){
     modal.modal('toggle');
 });
 $('#confirmDeleteBtn').on('click', function(){
-    const user_id = $('#confirmDelete').find('.user-id').text();
+    const user_id = $('#deleteWarning').data('user-id');
     deleteUser(user_id);
 });
 //Promote action event handler
