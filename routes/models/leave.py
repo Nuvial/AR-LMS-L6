@@ -150,6 +150,24 @@ def getRequestedLeave(employee_id=None):
 
 
 
+def isLeaveInManagerTeam(leave_id, manager_employee_id):
+    """
+    Checks if the employee who made the leave request is in the manager's team.
+    """
+    try:
+        db = get_db()
+        query = """
+            SELECT 
+                el.pk_leave_id
+            FROM EmployeeLeave el
+            JOIN Employees e ON el.fk_employee_id = e.pk_employee_id
+            JOIN Team t ON e.fk_team_id = t.pk_team_id
+            WHERE el.pk_leave_id = ? AND t.fk_manager_id = ?
+        """
+        return db.execute(query, (leave_id, manager_employee_id)).fetchone() is not None
+    except Exception as e:
+        return False
+
 def approveLeave(id, comment=None):
     """
     Args:

@@ -1,8 +1,8 @@
 from flask import request, jsonify, Blueprint, render_template
 from flask_login import login_required, current_user
 
-from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest
-from .auth import admin_required
+from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest, isLeaveInManagerTeam
+from .auth import admin_required, admin_or_manager_required
 
 leave = Blueprint('leave', __name__)
 
@@ -62,7 +62,7 @@ def getRequestedLeaveRoute():
         
 @leave.route('/update_leave/approve/<int:leave_id>', methods=['PUT'])
 @login_required
-@admin_required
+@admin_or_manager_required
 def approveLeaveRoute(leave_id):
     """
     Approves a specific leave id.
@@ -71,16 +71,18 @@ def approveLeaveRoute(leave_id):
         comment (str): Any admin comments.
     """
     if request.method == 'PUT':
+        if not current_user.admin and not isLeaveInManagerTeam(leave_id, current_user.employee_id):
+            return jsonify({"error": "You can only approve leave for employees in your team."}), 403
         comments = request.get_json()['comment']
         approve = approveLeave(leave_id, comments)
         if approve == 'success':
             return {'data': 'success'}
         else:
             return jsonify({"error": "Could not approve leave." })
-        
+
 @leave.route('/update_leave/deny/<int:leave_id>', methods=['PUT'])
 @login_required
-@admin_required
+@admin_or_manager_required
 def denyLeaveRoute(leave_id):
     """
     Denies a specific leave id.
@@ -89,6 +91,8 @@ def denyLeaveRoute(leave_id):
         comment (str): Any admin comments.
     """
     if request.method == 'PUT':
+        if not current_user.admin and not isLeaveInManagerTeam(leave_id, current_user.employee_id):
+            return jsonify({"error": "You can only deny leave for employees in your team."}), 403
         comments = request.get_json()['comment']
         deny = denyLeave(leave_id, comments)
         if deny == 'success':

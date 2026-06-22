@@ -208,7 +208,7 @@ function getRequestedLeave(){
 }
 function noRequestedLeave(){
     hideLoader();
-    if (current_user.admin == 0) {
+    if (current_user.admin == 0 && current_user.is_manager == 0) {
         return
     };
 
@@ -395,7 +395,7 @@ function handleEditClick(data, page){
         $('.action-bar').show();
         $('.status-text').text('');
 
-        if (current_user.admin == 1 && !(current_user.employee_id == selected_employee_id)){
+        if ((current_user.admin == 1 || current_user.is_manager == 1) && !(current_user.employee_id == selected_employee_id)){
             employee_comments.attr('disabled', '');
             admin_comments.removeAttr('disabled');
         } else {

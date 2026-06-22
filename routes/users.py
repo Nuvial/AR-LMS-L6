@@ -2,9 +2,9 @@ from flask import request, jsonify, Blueprint, render_template
 from flask_login import login_required, current_user
 from flask_bcrypt import Bcrypt
 
-from .models.users import getUsers, deleteUser, changePassword, changeUsername
+from .models.users import getUsers, deleteUser, changePassword, changeUsername, isUserInManagerTeam
 from .models.auth import isEmployeeIdRegistered, usernameTaken, registerUser, upgradeUser, demoteUser
-from .auth import admin_required
+from .auth import admin_required, admin_or_manager_required
 
 users = Blueprint('users', __name__)
 bcrypt = Bcrypt()
@@ -34,7 +34,7 @@ def getEmployeesRoute(user_id=None):
         user_id (int, optional): User ID to get. If not provided, gets all users.
     """
     if request.method == 'GET':
-        if current_user.admin:
+        if current_user.admin or current_user.is_manager:
             users = getUsers(user_id)
         else:
             users = getUsers(current_user.id)
@@ -138,12 +138,14 @@ def deleteUserSelf():
 
 @users.route('/delete_user/<int:user_id>', methods=['DELETE'])
 @login_required
-@admin_required
+@admin_or_manager_required
 def deleteUserRoute(user_id):
     """
     Route to delete a user from the modify login page
     """
     if request.method == 'DELETE':
+        if not current_user.admin and not isUserInManagerTeam(user_id, current_user.employee_id):
+            return jsonify({"error": "You can only delete accounts for employees in your team."}), 403
         delete = deleteUser(user_id)
         if delete['message'] == 'success':
             return {'message': 'success'}
@@ -157,6 +159,9 @@ def changePasswordRoute(user_id):
     Route to change a user password from the modify login page
     """
     if request.method == 'PUT':
+        if not current_user.admin and user_id != current_user.id:
+            if not current_user.is_manager or not isUserInManagerTeam(user_id, current_user.employee_id):
+                return jsonify({"error": "You can only change passwords for employees in your team."}), 403
         data = request.get_json()
         hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
         change = changePassword(user_id, hashed_password)
@@ -188,6 +193,9 @@ def changeUsernameRoute(user_id):
     Route to change a username from the modify login page
     """
     if request.method == 'PUT':
+        if not current_user.admin and user_id != current_user.id:
+            if not current_user.is_manager or not isUserInManagerTeam(user_id, current_user.employee_id):
+                return jsonify({"error": "You can only change usernames for employees in your team."}), 403
         data = request.get_json()
         username = data['username']
 

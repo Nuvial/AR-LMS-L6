@@ -8,7 +8,6 @@ def getUsers(user_id=None):
         user_id (int, optional): User ID to get. If not provided, gets all users.
     """
     try:
-        # Create base query
         query = """
             SELECT
                 a.pk_user_id,
@@ -19,25 +18,46 @@ def getUsers(user_id=None):
                 a.forgot_password,
                 a.admin
             FROM Users a
-            JOIN Employees b on a.fk_employee_id = b.pk_employee_id
+            JOIN Employees b ON a.fk_employee_id = b.pk_employee_id
+            LEFT JOIN Team t ON b.fk_team_id = t.pk_team_id
         """
         values = ()
+        conditions = []
 
-        if (user_id):
-            # Add condition to base query if id is provided
-            query += " WHERE pk_user_id = ?"
-            values = (user_id,)
-        
-        # Execute the query
+        if user_id:
+            conditions.append("a.pk_user_id = ?")
+            values += (user_id,)
+
+        if not current_user.admin:
+            # Managers see their team members; non-managers see only themselves
+            conditions.append("(t.fk_manager_id = ? OR a.fk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+
+        if conditions:
+            query += f" WHERE {' AND '.join(conditions)}"
+
         db = get_db()
         users = db.execute(query, values).fetchall()
-
-        # Convert result into a dictionary
-        users = [dict(row) for row in users]
-
-        return users
+        return [dict(row) for row in users]
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
+
+def isUserInManagerTeam(user_id, manager_employee_id):
+    """
+    Checks whether the given user account belongs to an employee in the manager's team.
+    """
+    try:
+        db = get_db()
+        query = """
+            SELECT a.pk_user_id
+            FROM Users a
+            JOIN Employees b ON a.fk_employee_id = b.pk_employee_id
+            JOIN Team t ON b.fk_team_id = t.pk_team_id
+            WHERE a.pk_user_id = ? AND t.fk_manager_id = ?
+        """
+        return db.execute(query, (user_id, manager_employee_id)).fetchone() is not None
+    except Exception:
+        return False
 
 def deleteUser(user_id=None):
     """

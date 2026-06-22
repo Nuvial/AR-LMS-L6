@@ -3,7 +3,7 @@ from flask import Flask, redirect, url_for, g
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 
-from routes.models.auth import User, registerUser, upgradeUser
+from routes.models.auth import User, registerUser, upgradeUser, isEmployeeManager
 from db import get_db
 
 app = Flask(__name__)
@@ -52,7 +52,7 @@ def load_user(user_id):
     db = get_db()
     user = db.execute("SELECT * FROM Users WHERE pk_user_id = ?", (user_id,)).fetchone()
     if user:
-        return User(user['pk_user_id'], user['fk_employee_id'], user['username'], user['password'], user['admin'])
+        return User(user['pk_user_id'], user['fk_employee_id'], user['username'], user['password'], user['admin'], isEmployeeManager(user['fk_employee_id']))
     return None
 
 # === Database Initialisation ===

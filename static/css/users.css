@@ -10,11 +10,16 @@
 .card-title {
     text-align: center;
 }
-#createAccount {
+#createAccount,
+#createAccountManager {
+    position: absolute;
     left: 0;
     margin-left: 1em;
     top: 50%;
     transform: translateY(-50%);
+}
+#createAccountManager .btn:disabled {
+    pointer-events: none;
 }
 .table {
     text-align: center;

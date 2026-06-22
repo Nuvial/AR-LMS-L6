@@ -311,30 +311,26 @@ function populateUserTable(users) {
 
 function getActionIcons(isAdmin, isCurrentUser, forgotPasswordClass) {
     if (isCurrentUser) {
-        return ''
-        // `
-        //     <i class="fas fa-square-pen fa-xl" title="Change username."></i>
-        //     <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
-        //     <i class="fas fa-trash fa-xl" style="visibility: hidden;" title="Delete account."></i>
-        //     <i class="fas fa-crown fa-xl" style="visibility: hidden;" title="Promote account."></i>
-        // `;
+        return '';
     }
+
+    const canAdminister = current_user.admin == 1;
+    const canDelete = canAdminister || current_user.is_manager == 1;
 
     if (isAdmin) {
         return `
             <i class="fas fa-square-pen fa-xl" title="Change username."></i>
             <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
-            <i class="fas fa-trash fa-xl" title="Delete account."></i>
-            <i class="fas fa-arrow-trend-down fa-xl" title="Demote account."></i>
+            ${canDelete ? `<i class="fas fa-trash fa-xl" title="Delete account."></i>` : ''}
+            ${canAdminister ? `<i class="fas fa-arrow-trend-down fa-xl" title="Demote account."></i>` : ''}
         `;
     }
 
-    // Default actions for non-admin users
     return `
         <i class="fas fa-square-pen fa-xl" title="Change username."></i>
         <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
-        <i class="fas fa-trash fa-xl" title="Delete account."></i>
-        <i class="fas fa-crown fa-xl" title="Promote account."></i>
+        ${canDelete ? `<i class="fas fa-trash fa-xl" title="Delete account."></i>` : ''}
+        ${canAdminister ? `<i class="fas fa-crown fa-xl" title="Promote account."></i>` : ''}
     `;
 }
 

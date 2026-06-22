@@ -99,6 +99,13 @@
         <div class="card-header">
             {% if current_user.admin %}
                 <button type="button" class="btn btn-primary btn-sm position-absolute" id="createAccount">Create Account <i class="fas fa-plus"></i></button>
+            {% elif current_user.is_manager %}
+                <span id="createAccountManager"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="bottom"
+                      data-bs-title="Only admins can create accounts. You can manage existing accounts for your team members.">
+                    <button type="button" class="btn btn-primary btn-sm" disabled aria-disabled="true">Create Account <i class="fas fa-plus"></i></button>
+                </span>
             {% endif %}
             <h5 class="card-title mb-0">Login Accounts</h5>
         </div>
@@ -127,4 +134,11 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/users/users.js') }}"></script>
+<script>
+    $(document).ready(function() {
+        $('[data-bs-toggle="tooltip"]').each(function() {
+            new bootstrap.Tooltip(this);
+        });
+    });
+</script>
 {% endblock %}

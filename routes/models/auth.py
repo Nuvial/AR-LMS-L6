@@ -8,12 +8,13 @@ from db import get_db
 
 # Create a user object for flask-login library
 class User(UserMixin):
-    def __init__(self, id, employee_id, username, password, admin):
+    def __init__(self, id, employee_id, username, password, admin, is_manager=False):
         self.id = id
         self.employee_id = employee_id
         self.username = username
         self.password = password
         self.admin = admin
+        self.is_manager = is_manager
 
     @staticmethod
     def get(username):
@@ -25,7 +26,8 @@ class User(UserMixin):
                 user_data['fk_employee_id'],
                 user_data['username'],
                 user_data['password'],
-                user_data['admin']
+                user_data['admin'],
+                isEmployeeManager(user_data['fk_employee_id'])
             )
         return None
 
@@ -47,6 +49,17 @@ class RegisterForm(FlaskForm):
 
 
 # Helper Functions
+
+def isEmployeeManager(employee_id):
+    """
+    Helper function to check if an employee is a team manager.
+    """
+    db = get_db()
+    query = """
+        SELECT pk_team_id FROM Team
+        WHERE fk_manager_id = ?
+    """
+    return db.execute(query, (employee_id,)).fetchone() is not None
 
 def getUserData(username):
     """

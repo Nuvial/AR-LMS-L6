@@ -83,7 +83,8 @@
                 id: "{{ current_user.id }}",
                 employee_id: "{{ current_user.employee_id }}",
                 username: "{{ current_user.username }}",
-                admin: "{{ current_user.admin }}"
+                admin: "{{ current_user.admin }}",
+                is_manager: "{{ '1' if current_user.is_manager else '0' }}"
             }
         </script>
 
