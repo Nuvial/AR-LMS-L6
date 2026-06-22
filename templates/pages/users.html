@@ -4,42 +4,9 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/users.css') }}">
 
-<div class="modal fade" id="passwordModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-3 mx-auto">Enter a password</h1>
-                <button type="button" class="btn-close" style="margin-left: 0px;" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="hidden-input">
-                    <input id="hidden-user-id">
-                </div>
-                <label class="form-label" for="tempPassword">Password:</label>
-                <input id="tempPassword" name="password" class="form-control has-validation" type="password" required>
-                <div class="invalid-feedback"></div>
-            </div>
-            <div class="modal-footer d-flex justify-content-between">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary disabled" id="confirmPassword" data-bs-target="" data-bs-toggle="">Continue</button>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="modal fade" id="confirmPasswordChange" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-3 mx-auto">Confirm Password Change?</h1>
-                <button type="button" class="btn-close" style="margin-left: 0px;" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-footer d-flex justify-content-between" style="border-top: 0px;">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-warning" id="confirmPasswordChangeBtn">Confirm</button>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'partials/password.html' %}
+{% include 'partials/warning-modal.html' %}
+
 <div class="modal fade" id="confirmAccount" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -73,27 +40,6 @@
             <div class="modal-footer d-flex justify-content-between" style="border-top: 0px;">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" id="confirmUsernameBtn">Confirm</button>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="modal fade" id="confirmDelete" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-3 mx-auto">Delete Account?</h1>
-                <button type="button" class="btn-close" style="margin-left: 0px;" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                User ID: <span class="user-id"></span>
-                <br>
-                Employee ID: <span class="employee-id"></span>
-                <br>
-                Username: <span class="username"></span>
-            </div>
-            <div class="modal-footer d-flex justify-content-between">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
             </div>
         </div>
     </div>
@@ -153,6 +99,13 @@
         <div class="card-header">
             {% if current_user.admin %}
                 <button type="button" class="btn btn-primary btn-sm position-absolute" id="createAccount">Create Account <i class="fas fa-plus"></i></button>
+            {% elif current_user.is_manager %}
+                <span id="createAccountManager"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="bottom"
+                      data-bs-title="Only admins can create accounts. You can manage existing accounts for your team members.">
+                    <button type="button" class="btn btn-primary btn-sm" disabled aria-disabled="true">Create Account <i class="fas fa-plus"></i></button>
+                </span>
             {% endif %}
             <h5 class="card-title mb-0">Login Accounts</h5>
         </div>
@@ -180,6 +133,12 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/users/users.js') }}"></script>
+<script>
+    $(document).ready(function() {
+        $('[data-bs-toggle="tooltip"]').each(function() {
+            new bootstrap.Tooltip(this);
+        });
+    });
+</script>
 {% endblock %}

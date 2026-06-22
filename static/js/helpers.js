@@ -128,12 +128,7 @@ function initSearch(form, search_container, attributes){
             });
             
             const matches = search.every(term => record_text.includes(term));
-
-            if (matches) {
-                $(record).show();
-            } else {
-                $(record).hide();
-            }
+            $(record).toggleClass('search-hidden', !matches);
         });
     });
 }
@@ -143,7 +138,7 @@ function initSearch(form, search_container, attributes){
  * 
  * @param {Object} obj1 
  * @param {Object} obj2 
- * @returns 
+ * @returns {Boolean}
  */
 function deepEqual(obj1, obj2) {
     if (obj1 === obj2) return true;
@@ -164,6 +159,18 @@ function deepEqual(obj1, obj2) {
     }
 
     return true;
+}
+
+/**
+ * Adds dynamic feedback to an `<input>` element during form validation.
+ * 
+ * @param {HTMLElement} element - The feedback element to show the feedback text on. This is typically an empty div with the class `invalid-feedback`.
+ * @param {String} feedback -  The feedback text to display.
+ * @param {HTMLElement} input -  The HTML input element to add the `is-invalid` class to.
+ */
+function addFeedback(element, feedback, input){
+    $(element).text(feedback);
+    $(input).addClass('is-invalid');
 }
 
 /**
@@ -235,6 +242,14 @@ function revertInputFields(selector, copy_classes=false, wrapper='span'){
  */
 function isValidLength(str, min, max){
     return (str.length > min) && (str.length < max)
+}
+/**
+ * Regex check to see if a string is a valid team name.
+ * @param {String} str 
+ * @returns {Boolean}
+ */
+function isValidTeamName(str){
+    return /^[a-zA-Z0-9][a-zA-Z0-9 _-]{1,48}[a-zA-Z0-9]$/.test(str);
 }
 /**
  * Simple check to test if a string is alpha numeric

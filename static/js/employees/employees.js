@@ -54,12 +54,13 @@ function loadEmployeeLeave() {
             showLoader();
         },
         success: function(resp){
-            if (resp.length > 0) {
+            if (resp.message == 'success') {
+                const leave = resp.leave;
                 // Populate employee leave for quick access without multiple AJAX calls
                 employee_leave = {};
                 employee_leave_calendar_cache = {};
 
-                resp.forEach(leave_rercord => {
+                leave.forEach(leave_rercord => {
                     if (!employee_leave[leave_rercord.fk_employee_id]) {
                         employee_leave[leave_rercord.fk_employee_id] = [];
                     }
@@ -94,6 +95,10 @@ function loadEmployeeLeave() {
                         });
                     }
                 })
+            } else if (resp.message == 'error') {
+                flashMessage(resp['error'], 'danger', 0);
+            } else {
+                flashMessage('Error loading employee leave. Please try again', 'danger', 0);
             }
         },
         complete: function() {

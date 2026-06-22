@@ -1,4 +1,5 @@
 from db import get_db
+from flask_login import current_user
 
 # Employee Table CRUD operations
 def add_employee(data):
@@ -26,10 +27,10 @@ def add_employee(data):
         leave_bal = data['default_leave_balance']
         sick_leave_bal = data['default_sick_leave_balance']
 
-        # Create query & set values
+        # Create query & set values (new employees default to 'employee' role)
         query = """
-            INSERT INTO Employees (first_name, last_name, default_leave_balance, default_sick_leave_balance, employee_position)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO Employees (first_name, last_name, default_leave_balance, default_sick_leave_balance, employee_position, fk_role_id)
+            VALUES (?, ?, ?, ?, ?, (SELECT pk_role_id FROM Roles WHERE name = 'employee'))
             """
         values = (first_name, last_name, leave_bal, sick_leave_bal, position)
 
@@ -51,21 +52,39 @@ def add_employee(data):
 
 def get_employees(employee_id=None):
     """
-    Get all employees from the database or a specific employee by ID.
+    Get all employees from the database (based on permissions) or a specific employee by ID.
     Args:
         employee_id (int, optional): The ID of the employee to get.
     """
     try:
         # Create base query
         query = """
-            SELECT * FROM Employees
+            SELECT
+                e.*,
+                r.name AS role,
+                t.name AS team_name,
+                t.fk_manager_id,
+                m.first_name AS manager_first_name,
+                m.last_name AS manager_last_name
+            FROM Employees e
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            LEFT JOIN Team t ON e.fk_team_id = t.pk_team_id
+            LEFT JOIN Employees m ON m.pk_employee_id = t.fk_manager_id
         """
         values = ()
-
+        conditions = []
         if (employee_id):
             # Add condition to base query if id is provided
-            query += " WHERE pk_employee_id = ?"
-            values = (employee_id,)
+            conditions.append("e.pk_employee_id = ?")
+            values += (employee_id,)
+        
+        if (not current_user.admin and employee_id != current_user.employee_id):
+            # Only return members who are part of the logged in users team (and themselves)
+            conditions.append("(t.fk_manager_id = ? OR e.pk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+        
+        if (conditions):
+            query += f"WHERE {" AND ".join(conditions)};"
         
         # Execute the query
         db = get_db()
@@ -97,14 +116,21 @@ def update_employee(employee_id, data):
         if not isinstance(data, dict):
             raise TypeError('Data must be a dictionary.')
 
-        # Define valid fields that can be updated
-        valid_fields = [
-            'first_name',
-            'last_name',
-            'employee_position',
-            'default_leave_balance',
-            'default_sick_leave_balance',
-        ]
+        # Define valid fields that can be updated. If user is not an admin they can only change their own first_name and last_name
+        if (employee_id == current_user.id and not current_user.admin):
+            valid_fields = [
+                'first_name',
+                'last_name'
+            ]
+        else:
+            valid_fields = [
+                'first_name',
+                'last_name',
+                'employee_position',
+                'default_leave_balance',
+                'default_sick_leave_balance',
+            ]
+        
         fields_to_update = []
         values = []
 
@@ -153,7 +179,7 @@ def delete_employee(employee_id):
 
         # Execute the query
         db = get_db()
-        db.execute("PRAGMA foreign_keys = ON") # Enable foreign keys for this connection
+        db.execute()
 
         db.execute(query, values)
         db.commit()

@@ -1,41 +1,48 @@
 from db import get_db
+from flask_login import current_user
 
 def getLeave(employee_id=None):
     """
-    Get all employee's leave from the database or a specific employee by ID.
-    Args:
-        employee_id (int, optional): The ID of the employee to get.
+    Get all employee leave or a specific employee's leave, scoped by the caller's role.
     """
     try:
-        # Create base query
         query = """
-            SELECT * FROM EmployeeLeave
+            SELECT
+                el.*,
+                e.pk_employee_id,
+                e.first_name,
+                e.last_name
+            FROM Employees e
+            LEFT JOIN EmployeeLeave el ON el.fk_employee_id = e.pk_employee_id
+            LEFT JOIN Team t ON e.fk_team_id = t.pk_team_id
         """
         values = ()
+        conditions = []
 
-        if (employee_id):
-            # Add condition to base query if id is provided
-            query += " WHERE fk_employee_id = ?"
-            values = (employee_id,)
-        
-        # Execute the query
+        if employee_id:
+            conditions.append("el.fk_employee_id = ?")
+            values += (employee_id,)
+
+        if not current_user.admin and employee_id != current_user.employee_id:
+            # Managers see their team; employees see only themselves
+            conditions.append("(t.fk_manager_id = ? OR el.fk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+
+        if conditions:
+            query += f"WHERE {' AND '.join(conditions)};"
+
         db = get_db()
-        stats = db.execute(query, values).fetchall()
-
-        # Convert result into a dictionary
-        stats = [dict(row) for row in stats]
-        return stats
+        leave = db.execute(query, values).fetchall()
+        return {'message': 'success', 'leave': [dict(row) for row in leave]}
     except Exception as e:
-        raise Exception(f"An error occurred: {e}")
+        return {'message': 'error', 'error': str(e)}
+
 
 def getRemainingLeave(employee_id=None):
     """
-    Get the remaining sick and annual leave for a specific employee.
-    Args:
-        employee_id (int): The ID of the employee to get remaining leave for.
+    Get the remaining sick and annual leave for an employee, scoped by the caller's role.
     """
     try:
-        # Create query to get remaining leave
         query = """
             SELECT
                 e.pk_employee_id as fk_employee_id,
@@ -58,154 +65,160 @@ def getRemainingLeave(employee_id=None):
                         AND strftime('%Y', start_date) = strftime('%Y', 'now')
                     ), 0) AS sick_leave_remaining
             FROM Employees e
+            LEFT JOIN Team t ON e.fk_team_id = t.pk_team_id
         """
         values = ()
+        conditions = []
 
         if employee_id:
-            # Add condition to base query if id is provided
-            query += " WHERE e.pk_employee_id = ?"
-            values = (employee_id,)
+            conditions.append("e.pk_employee_id = ?")
+            values += (employee_id,)
 
-        # Execute the query
+        if not current_user.admin and employee_id != current_user.employee_id:
+            conditions.append("(t.fk_manager_id = ? OR e.pk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+
+        if conditions:
+            query += f"WHERE {' AND '.join(conditions)};"
+
         db = get_db()
         stats = db.execute(query, values).fetchall()
-
-        if stats:
-            return [dict(row) for row in stats]
-        else:
-            return None
+        return [dict(row) for row in stats] if stats else None
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
+
 
 def getRequestedLeave(employee_id=None):
     """
-    Returns:
-        employee_id (array): Employee ID's with requsted leave.
+    Return employee IDs that have pending leave requests, scoped by the caller's role.
     """
     try:
-        # Create base query
         query = """
-            SELECT fk_employee_id, status
-            FROM EmployeeLeave
-            WHERE status == 'Pending'
+            SELECT
+                el.fk_employee_id,
+                el.status
+            FROM EmployeeLeave el
+            JOIN Employees e ON el.fk_employee_id = e.pk_employee_id
+            LEFT JOIN Team t ON e.fk_team_id = t.pk_team_id
+            WHERE status = 'Pending'
         """
         values = ()
+        conditions = []
 
         if employee_id:
-            # Add condition to base query if id is provided
-            query += " AND fk_employee_id = ?"
+            conditions.append("el.fk_employee_id = ?")
             values = (employee_id,)
-        
-        # Execute the query
+
+        if not current_user.admin and employee_id != current_user.employee_id:
+            conditions.append("(t.fk_manager_id = ? OR e.pk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+
+        if conditions:
+            query += f" AND {' AND '.join(conditions)};"
+
         db = get_db()
         employees = db.execute(query, values).fetchall()
-
-        # Convert result into a dictionary
-        employees = [dict(row) for row in employees]
-
-        return employees
+        return [dict(row) for row in employees]
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
 
+
+def isLeaveInManagerTeam(leave_id, manager_employee_id):
+    """
+    Returns True if the leave request belongs to an employee in the manager's team
+    and the leave owner is not an admin (managers cannot approve admin leave).
+    """
+    try:
+        db = get_db()
+        query = """
+            SELECT el.pk_leave_id
+            FROM EmployeeLeave el
+            JOIN Employees e ON el.fk_employee_id = e.pk_employee_id
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            JOIN Team t ON e.fk_team_id = t.pk_team_id
+            WHERE el.pk_leave_id = ?
+              AND t.fk_manager_id = ?
+              AND r.name != 'admin'
+        """
+        return db.execute(query, (leave_id, manager_employee_id)).fetchone() is not None
+    except Exception:
+        return False
+
+
+def getLeaveOwnerRole(leave_id):
+    """
+    Returns the role name of the employee who owns this leave request.
+    """
+    try:
+        db = get_db()
+        query = """
+            SELECT r.name
+            FROM EmployeeLeave el
+            JOIN Employees e ON el.fk_employee_id = e.pk_employee_id
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            WHERE el.pk_leave_id = ?
+        """
+        row = db.execute(query, (leave_id,)).fetchone()
+        return row[0] if row else None
+    except Exception:
+        return None
 
 
 def approveLeave(id, comment=None):
-    """
-    Args:
-        leave_id (int): Specific leave ID to approve.
-        comment (str): (Optional) admin comment on leave.
-    """
     try:
-        # Create base query
         query = """
             UPDATE EmployeeLeave
-            SET
-                status = 'Approved',
-                comment_admin = ?
+            SET status = 'Approved', comment_admin = ?
             WHERE pk_leave_id = ?
         """
-        values = (comment, id)
-        
-        # Execute the query
         db = get_db()
-        db.execute(query, values)
+        db.execute(query, (comment, id))
         db.commit()
-
         return 'success'
-    
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
+
 
 def denyLeave(id, comment=None):
-    """
-    Args:
-        leave_id (int): Specific leave ID to deny.
-        comment (str): (Optional) admin comment on leave.
-    """
     try:
-        # Create base query
         query = """
             UPDATE EmployeeLeave
-            SET
-                status = 'Rejected',
-                comment_admin = ?
+            SET status = 'Rejected', comment_admin = ?
             WHERE pk_leave_id = ?
         """
-        values = (comment, id)
-        
-        # Execute the query
         db = get_db()
-        db.execute(query, values)
+        db.execute(query, (comment, id))
         db.commit()
-
         return 'success'
-    
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
+
 
 def requestLeave(fk_employee_id, leave_type, start_date, end_date, comment_employee):
     try:
-        # Create base query
         query = """
             INSERT INTO EmployeeLeave(fk_employee_id, leave_type, start_date, end_date, status, comment_employee)
-            VALUES (
-                ?,
-                ?,
-                ?,
-                ?,
-                'Pending',
-                ?
-            )
+            VALUES (?, ?, ?, ?, 'Pending', ?)
         """
-        values = (fk_employee_id, leave_type, start_date, end_date, comment_employee)
-
-        # Execute the query
         db = get_db()
-        db.execute(query, values)
+        db.execute(query, (fk_employee_id, leave_type, start_date, end_date, comment_employee))
         db.commit()
-
         return 'success'
-    
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
 
+
 def deleteRequest(leave_id, employee_id):
     try:
-        # Create base query
         query = """
             DELETE FROM EmployeeLeave
-            WHERE 
-                pk_leave_id = ? AND
-                fk_employee_id = ? AND
-                (status = 'Pending' OR (status = 'Approved' AND date(start_date) > date('now')))
+            WHERE pk_leave_id = ?
+              AND fk_employee_id = ?
+              AND (status = 'Pending' OR (status = 'Approved' AND date(start_date) > date('now')))
         """
-        values = (leave_id, employee_id)
-        # Execute the query
         db = get_db()
-        db.execute(query, values)
+        db.execute(query, (leave_id, employee_id))
         db.commit()
-
         return 'success'
-    
     except Exception as e:
         raise Exception(f"An error occurred: {e}")

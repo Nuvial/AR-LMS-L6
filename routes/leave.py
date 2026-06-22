@@ -1,8 +1,8 @@
 from flask import request, jsonify, Blueprint, render_template
 from flask_login import login_required, current_user
 
-from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest
-from .auth import admin_required
+from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest, isLeaveInManagerTeam, getLeaveOwnerRole
+from .auth import admin_required, admin_or_manager_required
 
 leave = Blueprint('leave', __name__)
 
@@ -22,15 +22,12 @@ def getLeaveRoute(employee_id=None):
         employee_id (int, optional): Employee ID to get. If not provided, gets all employees.
     """
     if request.method == 'GET':
-        if current_user.admin:
-            stats = getLeave(employee_id)
-        else:
-            stats = getLeave(current_user.employee_id)
+        leave = getLeave(employee_id)
         
-        if stats:
-            return jsonify(stats)
+        if leave['message'] == 'success':
+            return jsonify({'message': 'success', 'leave': leave['leave']})
         else:
-            return jsonify({"error": "No leave found"})
+            return jsonify({'message': 'error', 'error': leave['error']})
 
 @leave.route('/get_leave/remaining', methods=['GET'])
 @leave.route('/get_leave/remaining/<int:employee_id>', methods=['GET'])
@@ -42,10 +39,7 @@ def getRemainingLeaveRoute(employee_id=None):
         employee_id (int): Employee ID to get remaining leave for.
     """
     if request.method == 'GET':
-        if current_user.admin:
-            stats = getRemainingLeave(employee_id)
-        else:
-            stats = getRemainingLeave(current_user.employee_id)
+        stats = getRemainingLeave(employee_id)
         
         if stats:
             return jsonify(stats), 200
@@ -59,10 +53,7 @@ def getRequestedLeaveRoute():
     Route to get employees with requested leave
     """
     if request.method == 'GET':
-        if current_user.admin:
-            employees = getRequestedLeave()
-        else:
-            employees = getRequestedLeave(current_user.employee_id)
+        employees = getRequestedLeave()
 
         if employees:
             return jsonify(employees), 200
@@ -71,7 +62,7 @@ def getRequestedLeaveRoute():
         
 @leave.route('/update_leave/approve/<int:leave_id>', methods=['PUT'])
 @login_required
-@admin_required
+@admin_or_manager_required
 def approveLeaveRoute(leave_id):
     """
     Approves a specific leave id.
@@ -80,16 +71,20 @@ def approveLeaveRoute(leave_id):
         comment (str): Any admin comments.
     """
     if request.method == 'PUT':
+        if not current_user.admin and not isLeaveInManagerTeam(leave_id, current_user.employee_id):
+            return jsonify({"error": "You can only approve leave for employees in your team."}), 403
+        if getLeaveOwnerRole(leave_id) == 'admin' and not current_user.admin:
+            return jsonify({"error": "Admin leave requests must be approved by another admin."}), 403
         comments = request.get_json()['comment']
         approve = approveLeave(leave_id, comments)
         if approve == 'success':
             return {'data': 'success'}
         else:
             return jsonify({"error": "Could not approve leave." })
-        
+
 @leave.route('/update_leave/deny/<int:leave_id>', methods=['PUT'])
 @login_required
-@admin_required
+@admin_or_manager_required
 def denyLeaveRoute(leave_id):
     """
     Denies a specific leave id.
@@ -98,6 +93,10 @@ def denyLeaveRoute(leave_id):
         comment (str): Any admin comments.
     """
     if request.method == 'PUT':
+        if not current_user.admin and not isLeaveInManagerTeam(leave_id, current_user.employee_id):
+            return jsonify({"error": "You can only deny leave for employees in your team."}), 403
+        if getLeaveOwnerRole(leave_id) == 'admin' and not current_user.admin:
+            return jsonify({"error": "Admin leave requests must be approved by another admin."}), 403
         comments = request.get_json()['comment']
         deny = denyLeave(leave_id, comments)
         if deny == 'success':

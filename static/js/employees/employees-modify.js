@@ -274,11 +274,11 @@ $('#addRecordBtn').on('click', function() {
 
 function validateFields(){
     let valid = true;
-    function addFeedback(element, feedback, input){
-        $(element).text(feedback);
-        $(input).addClass('is-invalid');
+
+    function invalidate(feedbackDiv, feedback, input) {
         valid = false;
-    }
+        addFeedback(feedbackDiv, feedback, input);
+    };
 
     // Custom field validation for each input.
     $('form#employee-form input').each(function(index, input){
@@ -289,63 +289,63 @@ function validateFields(){
         // First Name: alphabetic, length 1-32
         if (field === 'employee-first-name') {
             if (!isAlphabetic(value)) {
-                addFeedback(feedback, 'Name contains invalid characters', input);
+                invalidate(feedback, 'Name contains invalid characters', input);
             } else if (!isValidLength(value, 0, 33)) {
-                addFeedback(feedback, 'Name must be 1-32 characters', input);
+                invalidate(feedback, 'Name must be 1-32 characters', input);
             }
         }
 
         // Last Name: alphabetic, length 1-32
         if (field === 'employee-last-name') {
             if (!isAlphabetic(value)) {
-                addFeedback(feedback, 'Name contains invalid characters', input);
+                invalidate(feedback, 'Name contains invalid characters', input);
             } else if (!isValidLength(value, 0, 33)) {
-                addFeedback(feedback, 'Name must be 1-32 characters', input);
+                invalidate(feedback, 'Name must be 1-32 characters', input);
             }
         }
 
         // Position: alphanumeric, length 1-32
         if (field === 'employee-position') {
             if (!isAlphaNumeric(value)) {
-                addFeedback(feedback, 'Position must be alphanumeric', input);
+                invalidate(feedback, 'Position must be alphanumeric', input);
             } else if (!isValidLength(value, 0, 33)) {
-                addFeedback(feedback, 'Position must be 1-32 characters', input);
+                invalidate(feedback, 'Position must be 1-32 characters', input);
             }
         }
 
         // Default Leave Balance: numeric, 0-365
         if (field === 'employee-default-leave-bal') {
             if (!isNumeric(value)) {
-                addFeedback(feedback, 'Leave balance must be numeric', input);
+                invalidate(feedback, 'Leave balance must be numeric', input);
             } else if (!isValidNumber(Number(value), -1, 366)) {
-                addFeedback(feedback, 'Leave balance must be 0-365', input);
+                invalidate(feedback, 'Leave balance must be 0-365', input);
             }
         }
 
         // Default Sick Leave Balance: numeric, 0-365
         if (field === 'employee-default-sick-bal') {
             if (!isNumeric(value)) {
-                addFeedback(feedback, 'Sick leave balance must be numeric', input);
+                invalidate(feedback, 'Sick leave balance must be numeric', input);
             } else if (!isValidNumber(Number(value), -1, 366)) {
-                addFeedback(feedback, 'Sick leave balance must be 0-365', input);
+                invalidate(feedback, 'Sick leave balance must be 0-365', input);
             }
         }
 
         // Attendance, Productivity: numeric, 0-100
         if (field === 'employee-attendance' || field === 'employee-productivity') {
             if (!isNumeric(value)) {
-                addFeedback(feedback, 'Value must be numeric', input);
+                invalidate(feedback, 'Value must be numeric', input);
             } else if (!isValidNumber(Number(value), -1, 101)) {
-                addFeedback(feedback, 'Value must be 0-100', input);
+                invalidate(feedback, 'Value must be 0-100', input);
             }
         }
 
         // Performance: numeric: 0-10
         if (field === 'employee-performance'){
             if (!isNumeric(value)) {
-                addFeedback(feedback, 'Value must be numeric', input);
+                invalidate(feedback, 'Value must be numeric', input);
             } else if (!isValidNumber(Number(value), -1, 11)) {
-                addFeedback(feedback, 'Value must be 0-10', input);
+                invalidate(feedback, 'Value must be 0-10', input);
             }
         }
     });

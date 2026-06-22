@@ -1,12 +1,16 @@
 body.shell {
     display: flex;
     align-items: stretch;
-    min-height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
 }
 main {
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-width: 0;
     position: relative;
+    overflow: hidden;
 }
  
 .navbar.sidebar {
@@ -14,7 +18,7 @@ main {
     height: 100vh;
     position: sticky;
     top: 0;
-    z-index: 2030;
+    z-index: 1050;
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
@@ -163,4 +167,24 @@ main {
 .calendar-day {
     font-size: small;
     font-family: Arial, Helvetica, sans-serif;
+}
+
+.search-hidden {
+    display: none !important;
+}
+
+.warning-callout {
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: rgba(219, 143, 0, 0.14);
+    border-left: 3px solid rgb(219, 143, 0);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+.warning-callout i { 
+    color: rgb(219, 143, 0); 
+    margin-right: 0.4rem; 
+}
+.warning-callout strong { 
+    color: rgb(219, 143, 0); 
 }

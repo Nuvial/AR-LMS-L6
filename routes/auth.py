@@ -22,6 +22,15 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def admin_or_manager_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.admin and not current_user.is_manager:
+            flash('You need to be an admin or team manager to access this page.', 'danger')
+            return redirect(url_for('auth.dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     login_form = LoginForm()
@@ -108,3 +117,9 @@ def logout():
 @login_required
 def dashboard():
     return render_template('pages/dashboard.html', active_page='dashboard')
+
+@auth.route('/admin_dashboard')
+@login_required
+@admin_required
+def admin_dashboard():
+    return render_template('pages/admin-dashboard.html', active_page='admin_dashboard')

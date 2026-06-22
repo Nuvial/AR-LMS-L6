@@ -10,11 +10,16 @@
 .card-title {
     text-align: center;
 }
-#createAccount {
+#createAccount,
+#createAccountManager {
+    position: absolute;
     left: 0;
     margin-left: 1em;
     top: 50%;
     transform: translateY(-50%);
+}
+#createAccountManager .btn:disabled {
+    pointer-events: none;
 }
 .table {
     text-align: center;
@@ -65,10 +70,6 @@ input[type=checkbox]{
     padding: 10px;
 }
 
-.hidden-input {
-    display: none;
-}
-
 .fa-triangle-exclamation {
     color: orange;
     position: absolute;
@@ -99,14 +100,14 @@ td.actions div.forgot-pass i:not(.forgot-pass) {
     }
 }
 
-#confirmDelete,
+#deleteWarning,
 #confirmPromote,
 #confirmDemote,
 #confirmUsernameChange{
     font-weight: bold;
     font-size: large;
 }
-#confirmDelete span,
+#deleteWarning span,
 #confirmPromote span,
 #confirmDemote span,
 #confirmUsernameChange span{

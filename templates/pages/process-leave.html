@@ -142,7 +142,7 @@
                 <button type="button" class="btn btn-outline-secondary close-modal">Close</button>
                 <div class="status-text"></div>
                 <button type="button" class="btn btn-danger" id="deleteRequest" style="display: none;" data-bs-target="#deleteRequestModal" data-bs-toggle="modal">Delete Request</button>
-                {% if current_user.admin %}
+                {% if current_user.admin or current_user.is_manager %}
                 <div class="action-bar" style="gap: 1em;">
                     <button type="button" class="btn btn-danger mx-1" id="denyLeaveRequest" data-bs-toggle="modal" data-bs-target="#denyModal">Deny Leave Request</button>
                     <button type="button" class="btn btn-success" id="approveLeaveRequest" data-bs-toggle="modal" data-bs-target="#approveModal">Approve Leave Request</button>
@@ -205,7 +205,6 @@
 <script>
     const active_page = "{{ active_page }}";
 </script>
-<script src="{{ url_for('static', filename='js/helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/employees/employees.js') }}"></script>
 <script src="{{ url_for('static', filename='js/leave/leave.js') }}"></script>
 

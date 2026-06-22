@@ -11,7 +11,7 @@ $(document).ready(function(){
 
     initSearch(
         '#employee-search', 
-        '#userTableBody tr', 
+        '#userTableBody tr',  
         [
             {selector: '.first-name'},
             {selector: '.last-name'},
@@ -109,9 +109,12 @@ function promoteUser(user_id){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message == 'success'){
                 softRefresh()
                 flashMessage('User account promoted successfully.', 'success', 3000)
+            } else if (resp.message == 'error') {
+                softRefresh()
+                flashMessage(resp['error'], 'danger', 6000)
             } else {
                 softRefresh()
                 flashMessage('Error promoting user account. Please try again', 'danger', 3000)
@@ -311,29 +314,26 @@ function populateUserTable(users) {
 
 function getActionIcons(isAdmin, isCurrentUser, forgotPasswordClass) {
     if (isCurrentUser) {
-        return `
-            <i class="fas fa-square-pen fa-xl" title="Change username."></i>
-            <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
-            <i class="fas fa-trash fa-xl" style="visibility: hidden;" title="Delete account."></i>
-            <i class="fas fa-crown fa-xl" style="visibility: hidden;" title="Promote account."></i>
-        `;
+        return '';
     }
+
+    const canAdminister = current_user.admin == 1;
+    const canDelete = canAdminister || current_user.is_manager == 1;
 
     if (isAdmin) {
         return `
             <i class="fas fa-square-pen fa-xl" title="Change username."></i>
             <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
-            <i class="fas fa-trash fa-xl" title="Delete account."></i>
-            <i class="fas fa-arrow-trend-down fa-xl" title="Demote account."></i>
+            ${canDelete ? `<i class="fas fa-trash fa-xl" title="Delete account."></i>` : ''}
+            ${canAdminister ? `<i class="fas fa-arrow-trend-down fa-xl" title="Demote account."></i>` : ''}
         `;
     }
 
-    // Default actions for non-admin users
     return `
         <i class="fas fa-square-pen fa-xl" title="Change username."></i>
         <i class="fas fa-key fa-xl ${forgotPasswordClass}" title="Change password."></i>
-        <i class="fas fa-trash fa-xl" title="Delete account."></i>
-        <i class="fas fa-crown fa-xl" title="Promote account."></i>
+        ${canDelete ? `<i class="fas fa-trash fa-xl" title="Delete account."></i>` : ''}
+        ${canAdminister ? `<i class="fas fa-crown fa-xl" title="Promote account."></i>` : ''}
     `;
 }
 
@@ -395,15 +395,15 @@ function placeholderRow(){
     createInputFields(placeholderRow, 'sm', true, true)
 }
 
-function addFeedback(element, feedback, input){
-    $(element).text(feedback);
-    $(input).addClass('is-invalid');
-    return false;
-}
-
 //Validates initial employee ID and Username fields
 async function validateFields() {
     const promises = [];
+
+    function invalidate(feedbackDiv, feedback, input){
+        addFeedback(feedbackDiv, feedback, input);
+        return false;
+    }
+
     $('#newUserForm input').each(function(index, input) {
         const name = input.name;
         const value = $(input).val();
@@ -485,20 +485,6 @@ $('#createAccount').on('click', function(){
     placeholderRow();
 });
 
-// Temp password validation event handler
-$('#tempPassword').on('input', function(){
-    const feedback_div = $(this).siblings().closest('.invalid-feedback');
-    const val = $(this).val();
-
-    if (!(val.length > 3)){
-        addFeedback(feedback_div, 'Password must be greater than 3 characters', this);
-        $('#confirmPassword').addClass('disabled');
-    } else {
-        $('.is-invalid').removeClass('is-invalid');
-        $('#confirmPassword').removeClass('disabled');
-    }
-});
-
 //Event handler for form submission
 $('#confirmAccountBtn').on('click', function(){
     const form = $('#newUserForm');
@@ -515,18 +501,27 @@ $('#confirmAccountBtn').on('click', function(){
 //Delete action event handler
 $('#userTableBody').on('click', '.actions .fas.fa-trash', function(){
     const row = $(this).closest('tr');
-    const modal = $('#confirmDelete');
+    const modal = $('#deleteWarning');
     const employee_id = row.find('.employee-id-div').text();
-    const user_id = row.find('.user-id').text().trim();
+    const user_id = row.data('user-id');
     const username = row.find('.username-div').text();
+    
+    modal.data('user-id', user_id);
+    modal.find('.modal-title').text('Delete Account?')
+    modal.find('.modal-body').empty().append(
+        `
+        User ID: <span class="user-id">${user_id}</span>
+        <br>
+        Employee ID: <span class="employee-id">${employee_id}</span>
+        <br>
+        Username: <span class="username">${username}</span>
+        `
+    );
 
-    modal.find('.user-id').text(user_id);
-    modal.find('.employee-id').text(employee_id);
-    modal.find('.username').text(username);
     modal.modal('toggle');
 });
 $('#confirmDeleteBtn').on('click', function(){
-    const user_id = $('#confirmDelete').find('.user-id').text();
+    const user_id = $('#deleteWarning').data('user-id');
     deleteUser(user_id);
 });
 //Promote action event handler
@@ -534,7 +529,7 @@ $('#userTableBody').on('click', '.actions .fas.fa-crown', function(){
     const row = $(this).closest('tr');
     const modal = $('#confirmPromote');
     const employee_id = row.find('.employee-id-div').text();
-    const user_id = row.find('.user-id').text().trim();
+    const user_id = row.data('user-id');
     const username = row.find('.username-div').text();
 
     modal.find('.user-id').text(user_id);
@@ -566,7 +561,7 @@ $('#confirmDemoteBtn').on('click', function(){
 //Change password action event handler
 $('#userTableBody').on('click', '.actions .fas.fa-key', function(){
     $('#confirmPassword').attr('data-bs-target', '#confirmPasswordChange').attr('data-bs-toggle', 'modal');
-    $('#hidden-user-id').val($(this).closest('tr').find('.user-id').text().trim());
+    $('#hidden-user-id').val($(this).closest('tr').data('user-id'));
     $('#tempPassword').val('');
     $('#passwordModal').modal('toggle');
 });
