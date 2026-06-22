@@ -22,15 +22,12 @@ def getLeaveRoute(employee_id=None):
         employee_id (int, optional): Employee ID to get. If not provided, gets all employees.
     """
     if request.method == 'GET':
-        if current_user.admin:
-            stats = getLeave(employee_id)
-        else:
-            stats = getLeave(current_user.employee_id)
+        leave = getLeave(employee_id)
         
-        if stats:
-            return jsonify(stats)
+        if leave['message'] == 'success':
+            return jsonify({'message': 'success', 'leave': leave['leave']})
         else:
-            return jsonify({"error": "No leave found"})
+            return jsonify({'message': 'error', 'error': leave['error']})
 
 @leave.route('/get_leave/remaining', methods=['GET'])
 @leave.route('/get_leave/remaining/<int:employee_id>', methods=['GET'])
@@ -42,10 +39,7 @@ def getRemainingLeaveRoute(employee_id=None):
         employee_id (int): Employee ID to get remaining leave for.
     """
     if request.method == 'GET':
-        if current_user.admin:
-            stats = getRemainingLeave(employee_id)
-        else:
-            stats = getRemainingLeave(current_user.employee_id)
+        stats = getRemainingLeave(employee_id)
         
         if stats:
             return jsonify(stats), 200
@@ -59,10 +53,7 @@ def getRequestedLeaveRoute():
     Route to get employees with requested leave
     """
     if request.method == 'GET':
-        if current_user.admin:
-            employees = getRequestedLeave()
-        else:
-            employees = getRequestedLeave(current_user.employee_id)
+        employees = getRequestedLeave()
 
         if employees:
             return jsonify(employees), 200

@@ -1,4 +1,5 @@
 from db import get_db
+from flask_login import current_user
 
 def getLeave(employee_id=None):
     """
@@ -9,24 +10,41 @@ def getLeave(employee_id=None):
     try:
         # Create base query
         query = """
-            SELECT * FROM EmployeeLeave
+            SELECT
+                el.*,
+                e.pk_employee_id,
+                e.first_name,
+                e.last_name
+            FROM Employees e
+            LEFT JOIN EmployeeLeave el ON el.fk_employee_id = e.pk_employee_id
+            LEFT JOIN Team t ON e.fk_team_id = t.pk_team_id
         """
         values = ()
+        conditions = []
 
         if (employee_id):
             # Add condition to base query if id is provided
-            query += " WHERE fk_employee_id = ?"
-            values = (employee_id,)
+            conditions.append("el.fk_employee_id = ?")
+            values += (employee_id,)
         
+        if (not current_user.admin and employee_id != current_user.employee_id):
+            # Only return members who are part of the logged in users team (and the employee themselves)
+            conditions.append("(t.fk_manager_id = ? OR el.fk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+        
+        if (conditions):
+            query += f"WHERE {" AND ".join(conditions)};"
+
         # Execute the query
         db = get_db()
-        stats = db.execute(query, values).fetchall()
+        leave = db.execute(query, values).fetchall()
 
         # Convert result into a dictionary
-        stats = [dict(row) for row in stats]
-        return stats
+        leave = [dict(row) for row in leave]
+
+        return {'message': 'success', 'leave': leave}
     except Exception as e:
-        raise Exception(f"An error occurred: {e}")
+        return {'message': 'error', 'error': str(e)}
 
 def getRemainingLeave(employee_id=None):
     """
@@ -58,13 +76,23 @@ def getRemainingLeave(employee_id=None):
                         AND strftime('%Y', start_date) = strftime('%Y', 'now')
                     ), 0) AS sick_leave_remaining
             FROM Employees e
+            LEFT JOIN Team t on e.fk_team_id = t.pk_team_id
         """
         values = ()
+        conditions = []
 
-        if employee_id:
+        if (employee_id):
             # Add condition to base query if id is provided
-            query += " WHERE e.pk_employee_id = ?"
-            values = (employee_id,)
+            conditions.append("e.pk_employee_id = ?")
+            values += (employee_id,)
+
+        if (not current_user.admin and employee_id != current_user.employee_id):
+            # Only return members who are part of the logged in users team (and the employee themselves)
+            conditions.append("(t.fk_manager_id = ? OR e.pk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+        
+        if (conditions):
+            query += f"WHERE {" AND ".join(conditions)};"
 
         # Execute the query
         db = get_db()
@@ -85,17 +113,30 @@ def getRequestedLeave(employee_id=None):
     try:
         # Create base query
         query = """
-            SELECT fk_employee_id, status
-            FROM EmployeeLeave
+            SELECT 
+                el.fk_employee_id, 
+                el.status
+            FROM EmployeeLeave el
+            JOIN Employees e on el.fk_employee_id = e.pk_employee_id
+            LEFT JOIN Team t on e.fk_team_id = t.pk_team_id
             WHERE status == 'Pending'
         """
         values = ()
+        conditions = []
 
-        if employee_id:
+        if (employee_id):
             # Add condition to base query if id is provided
-            query += " AND fk_employee_id = ?"
+            conditions.append("el.fk_employee_id = ?")
             values = (employee_id,)
         
+        if (not current_user.admin and employee_id != current_user.employee_id):
+            # Only return members who are part of the logged in users team (and the employee themselves)
+            conditions.append("(t.fk_manager_id = ? OR e.pk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+        
+        if (conditions):
+            query += f"AND {" AND ".join(conditions)};"
+
         # Execute the query
         db = get_db()
         employees = db.execute(query, values).fetchall()

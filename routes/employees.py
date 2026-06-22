@@ -17,10 +17,16 @@ def index():
 def modify_index():
     return render_template('pages/employees-modify.html', active_page='modify_records')
 
-@employees.route('/get_employees/self')
+@employees.route('/get_employees/self', methods=['GET'])
 @login_required
 def get_current_employee():
-    return get_employees_route(current_user.employee_id)
+    if request.method == 'GET':
+        employee = get_employees(current_user.employee_id)
+
+        if employee:
+            return jsonify(employee), 200
+        else:
+            return jsonify({"error": "No employees found"})
 
 @employees.route('/get_employees', methods=['GET'])
 @employees.route('/get_employees/<int:employee_id>', methods=['GET'])
@@ -33,10 +39,7 @@ def get_employees_route(employee_id=None):
         employee_id (int, optional): Employee ID to get. If not provided, gets all employees.
     """
     if request.method == 'GET':
-        if current_user.admin:
-            employees_data = get_employees(employee_id)
-        else:
-            employees_data = get_employees(current_user.employee_id)
+        employees_data = get_employees(employee_id)
         
         if employees_data:
             return jsonify(employees_data), 200

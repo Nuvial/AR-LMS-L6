@@ -224,17 +224,18 @@ function cachePendingDetails(data){
             url: `/leave/get_leave/${id}`,
             type: 'GET',
             success: function(resp){
-                if (resp.error){
+                if (resp.message == 'error'){
                     if (!cached_pending_details[id]) cached_pending_details[id] = {};
                     return;
                 }
 
-                resp.forEach(request => {
+                resp.leave.forEach(request => {
                     if (!cached_pending_details[id]) cached_pending_details[id] = {};
                     if (!cached_pending_details[id][request.pk_leave_id]) cached_pending_details[id][request.pk_leave_id] = request;
                 });
             },
             complete: function(){
+                if (!cached_pending_details[id]) cached_pending_details[id] = {};
                 getRemainingLeave(id);
                 getDefaultLeave(id);
             },
@@ -258,10 +259,19 @@ async function getRemainingLeave(id, cache=true){
         return
     }
     if (cache){
-        Object.values(cached_pending_details[id]).forEach(value => {
-            value['leave_remaining'] = resp[0].leave_remaining
-            value['sick_leave_remaining'] = resp[0].sick_leave_remaining
-        });
+        const entries = Object.values(cached_pending_details[id] || {});
+        if (entries.length){
+            entries.forEach(value => {
+                value['leave_remaining'] = resp[0].leave_remaining;
+                value['sick_leave_remaining'] = resp[0].sick_leave_remaining;
+            });
+        } else {
+            // Employee exists but has no leave records, store directly on the cache
+            cached_pending_details[id]._meta = {
+                leave_remaining: resp[0].leave_remaining,
+                sick_leave_remaining: resp[0].sick_leave_remaining
+            };
+        }
     } else {
         return resp[0]
     }
@@ -279,10 +289,19 @@ async function getDefaultLeave(id, cache=true){
         return;
     }
     if (cache){
-        Object.values(cached_pending_details[id]).forEach(value => {
-            value['default_leave_balance'] = resp[0].default_leave_balance;
-            value['default_sick_leave_balance'] = resp[0].default_sick_leave_balance;
-        });
+        const entries = Object.values(cached_pending_details[id] || {});
+        if (entries.length){
+            entries.forEach(value => {
+                value['default_leave_balance'] = resp[0].default_leave_balance;
+                value['default_sick_leave_balance'] = resp[0].default_sick_leave_balance;
+            });
+        } else {
+            // Employee exists but has no leave records, store directly on the cache
+            cached_pending_details[id]._meta = {
+                default_leave_balance: resp[0].default_leave_balance,
+                default_sick_leave_balance: resp[0].default_sick_leave_balance
+            };
+        }
     } else {
         return resp[0];
     }

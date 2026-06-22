@@ -52,7 +52,7 @@ def add_employee(data):
 
 def get_employees(employee_id=None):
     """
-    Get all employees from the database or a specific employee by ID.
+    Get all employees from the database (based on permissions) or a specific employee by ID.
     Args:
         employee_id (int, optional): The ID of the employee to get.
     """
@@ -70,11 +70,19 @@ def get_employees(employee_id=None):
             LEFT JOIN Employees m ON m.pk_employee_id = t.fk_manager_id
         """
         values = ()
-
+        conditions = []
         if (employee_id):
             # Add condition to base query if id is provided
-            query += " WHERE e.pk_employee_id = ?"
-            values = (employee_id,)
+            conditions.append("e.pk_employee_id = ?")
+            values += (employee_id,)
+        
+        if (not current_user.admin and employee_id != current_user.employee_id):
+            # Only return members who are part of the logged in users team (and themselves)
+            conditions.append("(t.fk_manager_id = ? OR e.pk_employee_id = ?)")
+            values += (current_user.employee_id, current_user.employee_id)
+        
+        if (conditions):
+            query += f"WHERE {" AND ".join(conditions)};"
         
         # Execute the query
         db = get_db()
