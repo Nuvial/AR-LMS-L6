@@ -6,6 +6,11 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/team-overview.css') }}">
 
+
+{% include 'partials/confirm-modal.html' %}
+{% include 'partials/revert-modal.html' %}
+{% include 'partials/warning-modal.html' %}
+
 <div class="main-content-wrapper">
     <div class="card teams">
         <div class="card-header">
@@ -19,7 +24,7 @@
                 <input class="form-control" id="team-search" placeholder="Search Team ID/Name/Manager ID...">
             </div>
             <form id="newTeamForm" class="needs-validation" novalidate>
-                <table class="table table-striped table-hover">
+                <table class="table table-hover">
                     <thead>
                         <tr>
                             <th class="team-id">Team ID</th>
@@ -49,10 +54,51 @@
         teams.init(
             $('#teamTableBody')
         );
+        initSearch(
+            $('#team-search'),
+            '#teamTableBody tr:not(.sub-table-header)',
+            [
+                {selector: '.team-id'},
+                {selector: '.team-name'},
+                {selector: '.manager-id'},
+                {selector: '.manager-name'},
+                {selector: '.employee-id'},
+                {selector: '.employee-first-name'},
+                {selector: '.employee-last-name'},
+                {selector: '.employee-position'}
+            ]
+        );
     });
 
     async function createTeam() {
         teams.actions.newTeam();
     }
+
+    $('#confirmActionBtn').on('click', () => {
+        $('.modal.show').modal('hide');
+        const btnClasses = $('#confirmActionBtn')[0].classList;
+
+        if (btnClasses.contains('create-team')) {
+            teams.data.createNewTeam(true);
+        } else if (btnClasses.contains('edit-team')) {
+            teams.data.saveTeam(true);
+        }
+    });
+
+    $('#revertModal #revertChangesConfirm').on('click', () => {
+        $('.modal.show').modal('hide');
+        teams.actions.cancelAction(true);
+    });
+
+    $('#deleteWarning #confirmDeleteBtn').on('click', () => {
+        const teamId = $('#confirmDeleteBtn').data('team-id');
+        if (!teamId) {
+            console.error('No team ID to delete');
+            return
+        }
+
+        $('.modal.show').modal('hide');
+        teams.data.deleteTeam(teamId);
+    });
 </script>
 {% endblock %}

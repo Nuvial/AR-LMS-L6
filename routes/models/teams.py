@@ -122,8 +122,8 @@ def getEmployeeManager(employeeId):
             JOIN Employees e on e.fk_team_id = t.pk_team_id
             WHERE e.pk_employee_id = ?
         """
-        values = (employeeId)
-        
+        values = (employeeId,)
+
         # Execute the query
         db = get_db()
         manager = db.execute(query, values).fetchall()
@@ -189,4 +189,97 @@ def createTeam(teamName, managerId, employeeIds):
 
         return {'message': 'success', 'pk_team_id': teamId}
     except Exception as e:
-        return {'message': 'error', 'error': e}
+        return {'message': 'error', 'error': str(e)}
+
+def updateTeam(teamId, teamName, managerId, employeeIds):
+    """
+    Updates a team record in the Team table for a new team.
+    """
+    try:
+        currentTeams = [{team['pk_team_id']: str(team['fk_manager_id'])} for team in getTeams()]
+        teamFreeEmployees = [str(employees['pk_employee_id']) for employees in getEmployees()['employees']]
+        thisTeamEmployees = [str(employees['pk_employee_id']) for employees in getEmployees(teamId)['employees']]
+
+        # Ensure manager is not in the employee Ids
+        if (managerId in employeeIds): 
+            return {'message': 'error', 'error': 'Manager cannot be an employee to the team.'}
+
+        # Ensure if manager is an employee in a different team, the employee is not their manager
+        if (managerId not in teamFreeEmployees):
+            managers = [str(manager['pk_employee_id']) for manager in getEmployeeManager(managerId)]
+            for manager in managers:
+                if (manager not in employeeIds): continue
+                return {'message': 'error', 'error': 'A team member cannot be a manager of the assigned manager.'}
+
+        # Ensure manager is not already managing a different team
+        for team in currentTeams:
+            for tId, mId in team.items():
+                if (managerId == mId and tId != teamId):
+                    return {'message': 'error', 'error': 'A manager can only manage one team at a time.'}
+
+        # Ensure employees are not already in a different team
+        for employee in employeeIds:
+            if ((str(employee['pk_employee_id']) not in teamFreeEmployees) and (str(employee['pk_employee_id']) not in thisTeamEmployees)):
+                return {'message': 'error', 'error': 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'}
+
+        db = get_db()
+
+        # Create query for Team
+        teamQuery = """
+            UPDATE Team 
+            SET
+                fk_manager_id = ?,
+                name = ?
+            WHERE pk_team_id = ?
+                
+        """
+        teamValues = (managerId, teamName, teamId)
+
+        db.execute(teamQuery, teamValues)
+
+        # Create query for employees to remove all references
+        employeeQueryRemoval = """
+            UPDATE Employees
+            SET
+                fk_team_id = NULL
+            WHERE fk_team_id = ?;
+        """
+        # Create query for employees to re-update all to team
+        employeeQuery = """
+            UPDATE Employees
+            SET
+                fk_team_id = ?
+            WHERE pk_employee_id = ?;
+        """
+        employeeRemovalValues = (teamId,)
+        employeeValues = [(teamId, employeeId['pk_employee_id']) for employeeId in employeeIds]
+
+        db.execute(employeeQueryRemoval, employeeRemovalValues)
+        db.executemany(employeeQuery, employeeValues)
+        db.commit()
+
+        return {'message': 'success', 'pk_team_id': teamId}
+    except Exception as e:
+        return {'message': 'error', 'error': str(e)}
+
+def deleteTeam(teamId):
+    """
+    Deletes a team record in the Team table.
+    """
+    try:
+        db = get_db()
+
+        # Create query for Team
+        teamQuery = """
+            DELETE FROM Team 
+            WHERE pk_team_id = ?
+                
+        """
+        teamValues = (teamId,)
+
+        db.execute(teamQuery, teamValues)
+        db.commit()
+
+        return {'message': 'success', 'pk_team_id': teamId}
+    except Exception as e:
+        return {'message': 'error', 'error': str(e)}

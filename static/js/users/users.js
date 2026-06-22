@@ -11,7 +11,7 @@ $(document).ready(function(){
 
     initSearch(
         '#employee-search', 
-        '#userTableBody tr', 
+        '#userTableBody tr',  
         [
             {selector: '.first-name'},
             {selector: '.last-name'},

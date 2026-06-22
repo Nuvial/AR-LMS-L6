@@ -128,12 +128,7 @@ function initSearch(form, search_container, attributes){
             });
             
             const matches = search.every(term => record_text.includes(term));
-
-            if (matches) {
-                $(record).show();
-            } else {
-                $(record).hide();
-            }
+            $(record).toggleClass('search-hidden', !matches);
         });
     });
 }
@@ -247,6 +242,14 @@ function revertInputFields(selector, copy_classes=false, wrapper='span'){
  */
 function isValidLength(str, min, max){
     return (str.length > min) && (str.length < max)
+}
+/**
+ * Regex check to see if a string is a valid team name.
+ * @param {String} str 
+ * @returns {Boolean}
+ */
+function isValidTeamName(str){
+    return /^[a-zA-Z0-9][a-zA-Z0-9 _-]{1,48}[a-zA-Z0-9]$/.test(str);
 }
 /**
  * Simple check to test if a string is alpha numeric

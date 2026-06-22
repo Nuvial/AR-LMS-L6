@@ -1,7 +1,7 @@
 from flask import request, jsonify, Blueprint, render_template
 from flask_login import login_required
 
-from .models.teams import getTeams, getEmployees, createTeam, getPossibleManagers
+from .models.teams import getTeams, getEmployees, createTeam, getPossibleManagers, updateTeam, deleteTeam
 from .auth import admin_required
 
 teams = Blueprint('teams', __name__)
@@ -95,6 +95,46 @@ def addTeam():
             managerId,
             employees
         )
+        
+        if team['message'] == 'success':
+            return jsonify({'message': 'success'}), 200
+        
+        return jsonify({'message': team['message'], 'error': team['error']})
+    
+@teams.route('/update_team/<int:team_id>', methods=['POST'])
+@login_required
+@admin_required
+def updateTeamRoute(team_id):
+    """
+    Route to update a team from the team management page
+    """
+    if request.method == 'POST':
+        teamData = request.get_json()
+        teamName = teamData['teamName']
+        managerId = teamData['managerId']
+        employees = teamData['employees']
+
+        team = updateTeam(
+            team_id,
+            teamName,
+            managerId,
+            employees
+        )
+        
+        if team['message'] == 'success':
+            return jsonify({'message': 'success'}), 200
+        
+        return jsonify({'message': team['message'], 'error': team['error']})
+
+@teams.route('/delete_team/<int:team_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def deleteTeamRoute(team_id):
+    """
+    Route to delete a team from the team management page
+    """
+    if request.method == 'DELETE':
+        team = deleteTeam(team_id)
         
         if team['message'] == 'success':
             return jsonify({'message': 'success'}), 200
