@@ -9,13 +9,6 @@
     color: black !important;
 }
 
-main {
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    overflow: hidden;
-}
-
 .info-page {
     --accent: rgb(219, 143, 0);
     --accent-soft: rgba(219, 143, 0, 0.14);

@@ -1,0 +1,74 @@
+.navbar.sidebar {
+    flex: 0 0 240px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    z-index: 1050;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    padding: 1rem;
+    overflow-y: auto;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+ 
+.navbar.sidebar .navbar-nav { 
+    gap: 0.15rem; 
+}
+.navbar.sidebar .nav-link {
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+.navbar.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+.navbar.sidebar .nav-link.active {
+    background-color: rgba(255, 166, 0, 0.15);
+    color: #fff;
+    font-weight: bold;
+    border-left: 3px solid orange;
+}
+ 
+.navbar-brand{
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: orange;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,1);
+    text-align: center;
+    transition: transform 0.3s, color 0.3s;
+}
+.navbar-brand:hover{
+    color: #ffcc00;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    transform: scale(1.2);
+}
+
+.sidebar-user i.fa-chevron-up {
+    color: white !important;
+}
+.sidebar-user:hover .username-text,
+.sidebar-user:hover i.fa-chevron-up { 
+    color: #ffcc00 !important; 
+}
+.user-icon {
+    color: black;
+    border-radius: 50%;
+    background-color: orange;
+    width: 43px;
+    height: 43px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 3px;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.username-text {
+    color: white;
+    font-weight: bold;
+    min-width: 2rem;
+    text-align: center;
+}

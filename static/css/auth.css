@@ -1,3 +1,27 @@
+body.shell {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    height: 100vh;
+    overflow: hidden;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+main .top-stack {
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
 .square-box {
     width: 30%;
     background-color: var(--bs-secondary-bg);
