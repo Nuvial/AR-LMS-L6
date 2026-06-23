@@ -1,3 +1,18 @@
+let editing = false;
+
+function setEditing(state, $editRow = null) {
+    editing = state;
+    if (state) {
+        $('#createAccount').addClass('disabled');
+        const $allRows = $('#userTableBody tr');
+        const $toDisable = $editRow ? $allRows.not($editRow) : $allRows;
+        $toDisable.find('td.actions > div').addClass('disabled');
+    } else {
+        $('#createAccount').removeClass('disabled');
+        $('#userTableBody tr').find('td.actions > div').removeClass('disabled');
+    }
+}
+
 $(document).ready(function(){
     //Check localstorage for any stored flashmessages - This is stored if the user changes their own username.
     const flash = localStorage.getItem('flashMessage');
@@ -23,7 +38,7 @@ $(document).ready(function(){
 
 function softRefresh(){
     $('.modal.show').modal('hide');
-    $('#createAccount').removeClass('disabled');
+    setEditing(false);
     loadUsers();
 }
 
@@ -464,7 +479,7 @@ function revertChanges(selector, remove=false, wrapper){
         } else {
             revertInputFields($(row), true, wrapper)
         }
-        $('#createAccount').removeClass('disabled');
+        setEditing(false);
     }
 }
 
@@ -481,7 +496,8 @@ $('#closeConfirmBtn').on('click', function(){
 });
 
 $('#createAccount').on('click', function(){
-    $(this).addClass('disabled');
+    if (editing) return;
+    setEditing(true);
     placeholderRow();
 });
 
@@ -572,11 +588,13 @@ $('#confirmPasswordChangeBtn').on('click', function(){
 });
 //Edit username action event handler
 $('#userTableBody').on('click', '.actions .fas.fa-square-pen', function(){
+    if (editing) return;
+
     const row = $(this).closest('tr');
     const td = $(row).find('.username');
     const old_username = $(td).text();
 
-    $('#createAccount').addClass('disabled');
+    setEditing(true, row);
 
     createInputFields($(td), 'sm', true, true);
     convertActions(row);

@@ -77,6 +77,10 @@ input[type=checkbox]{
     top: 50%;
     transform: translateY(-50%);
 }
+td.actions div.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
 td.actions div.forgot-pass .fa-key.forgot-pass {
     animation: forgot-pass 1s infinite;
 }
