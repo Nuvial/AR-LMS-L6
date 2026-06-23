@@ -117,9 +117,3 @@ def logout():
 @login_required
 def dashboard():
     return render_template('pages/dashboard.html', active_page='dashboard')
-
-@auth.route('/admin_dashboard')
-@login_required
-@admin_required
-def admin_dashboard():
-    return render_template('pages/admin-dashboard.html', active_page='admin_dashboard')

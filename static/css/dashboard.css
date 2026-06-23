@@ -1,3 +1,10 @@
+main.container {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    min-height: 0;
+}
+
 .card-subtitle {
     color: var(--bs-secondary);
 }
@@ -19,4 +26,18 @@ div div.card:hover .card-subtitle,
 div div.card:hover i.fas {
     color: white;
     transition: color 0.2s ease;
+}
+
+.dashboard-container {
+    padding: 1rem;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.dashboard-container #employeesPage {
+    min-width: 100%;
+}
+.dashboard-container div {
+    flex: 1 1 33%;
 }

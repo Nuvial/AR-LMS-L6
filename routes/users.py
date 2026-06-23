@@ -1,6 +1,6 @@
 import re
 
-from flask import request, jsonify, Blueprint, render_template
+from flask import request, jsonify, Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 from flask_bcrypt import Bcrypt
 
@@ -32,7 +32,9 @@ def _validate_password(password):
 @users.route('/')
 @login_required
 def index():
-    return render_template('pages/users.html', active_page='modify_login')
+    if (current_user.admin or current_user.is_manager):
+        return render_template('pages/users.html', active_page='modify_login')
+    return redirect(url_for('users.settings'))
 
 @users.route('/settings')
 @login_required
