@@ -78,10 +78,6 @@ def usernameTaken(username):
     return db.execute(query, (username,)).fetchone() is not None
 
 
-# ---------------------------------------------------------------------------
-# Write models
-# ---------------------------------------------------------------------------
-
 def registerUser(data):
     try:
         query = """
@@ -132,15 +128,24 @@ def upgradeUser(user_id):
 def demoteUser(user_id):
     """Demote a user back to employee by updating their role in Employees."""
     try:
-        query = """
+        db = get_db()
+        admin_count = db.execute("""
+            SELECT COUNT(*) as count
+            FROM Users u
+            JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            WHERE r.name = 'admin'
+        """).fetchone()['count']
+        if admin_count <= 1:
+            return {'message': 'error', 'error': 'Cannot demote the only admin account. Please assign another admin first.'}
+
+        db.execute("""
             UPDATE Employees
             SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')
             WHERE pk_employee_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
-        """
-        db = get_db()
-        db.execute(query, (user_id,))
+        """, (user_id,))
         db.commit()
-        return 'success'
+        return {'message': 'success'}
     except Exception as e:
         raise e
 

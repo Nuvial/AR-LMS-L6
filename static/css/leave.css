@@ -169,3 +169,11 @@ tbody#employee-records-body.disabled{
     opacity: 0.25;
     pointer-events: none;
 }
+
+.actions-btns {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}

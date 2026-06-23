@@ -48,19 +48,19 @@ const modify = {
                     type: 'PUT',
                     contentType: 'application/json',
                     success: function(resp){
-                        if (resp.message){
+                        if (resp.message === 'success'){
                             $('.modal.show').modal('hide');
                             modify.stopEditing();
                             softRefresh();
-                            flashMessage(resp.message, 'success');
-                            return
-                        } else if (resp.error){
-                            console.error(resp.error)
+                            flashMessage('Employee record updated successfully.', 'success');
+                        } else {
+                            $('.modal.show').modal('hide');
+                            flashMessage(resp.error || 'Failed to update employee. Please try again.', 'danger', 6000);
                         }
                     },
                     error: function(xhr, status, error) {
                         console.error("Could not update Employees table: " + error);
-                        alert("Failed to update employees. Please try again later.");
+                        flashMessage('Failed to update employee. Please try again later.', 'danger', 6000);
                     }
                 });
             }
@@ -71,19 +71,19 @@ const modify = {
                     type: 'PUT',
                     contentType: 'application/json',
                     success: function(resp){
-                        if (resp.message){
+                        if (resp.message === 'success'){
                             $('.modal.show').modal('hide');
                             modify.stopEditing();
                             softRefresh();
-                            flashMessage(resp.message, 'success');
-                            return
-                        } else if (resp.error){
-                            console.error(resp.error)
+                            flashMessage('Employee stats updated successfully.', 'success');
+                        } else {
+                            $('.modal.show').modal('hide');
+                            flashMessage(resp.error || 'Failed to update stats. Please try again.', 'danger', 6000);
                         }
                     },
                     error: function(xhr, status, error) {
                         console.error("Could not update EmployeeStats table: " + error);
-                        alert("Failed to update employees. Please try again later.");
+                        flashMessage('Failed to update stats. Please try again later.', 'danger', 6000);
                     }
                 });
             }
@@ -95,15 +95,16 @@ const modify = {
                 type: 'POST',
                 contentType: 'application/json',
                 success: function(resp){
-                    if (resp.employee_id){
-                        createStats(resp.employee_id)
-                    } else if (resp.error){
-                        console.error(resp.error)
+                    if (resp.message === 'success' && resp.employee_id){
+                        createStats(resp.employee_id);
+                    } else {
+                        $('.modal.show').modal('hide');
+                        flashMessage(resp.error || 'Failed to add employee. Please try again.', 'danger', 6000);
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error("Could not add to Employees table: " + error);
-                    alert("Failed to add to employees. Please try again later.");
+                    flashMessage('Failed to add employee. Please try again later.', 'danger', 6000);
                 }
             });
         }
@@ -114,19 +115,19 @@ const modify = {
                 type: 'POST',
                 contentType: 'application/json',
                 success: function(resp){
-                    if (resp.message){
+                    if (resp.message === 'success'){
                         $('.modal.show').modal('hide');
                         modify.stopEditing();
                         softRefresh();
-                        flashMessage(resp.message, 'success');
-                        return
-                    } else if (resp.error){
-                        console.error(resp.error)
+                        flashMessage('Employee added successfully.', 'success');
+                    } else {
+                        $('.modal.show').modal('hide');
+                        flashMessage(resp.error || 'Failed to add employee stats. Please try again.', 'danger', 6000);
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error("Could not add to EmployeeStats table: " + error);
-                    alert("Failed to add to stats. Please try again later.");
+                    flashMessage('Failed to add stats. Please try again later.', 'danger', 6000);
                 }
             });
         }
@@ -149,23 +150,33 @@ const modify = {
         $('.modal.show').modal('hide');
     },
     deleteRecord: function() {
+        const selfDelete = Number(selected_employee_id) === Number(current_user.employee_id);
         $.ajax({
             url: `/employees/delete_employee/${selected_employee_id}`,
             type: 'DELETE',
             success: function(resp){
-                if (resp.message){
+                if (resp.message === 'success'){
                     $('.modal.show').modal('hide');
-                    modify.stopEditing();
-                    softRefresh();
-                    flashMessage(resp.message, 'success');
-                    return
-                } else if (resp.error){
-                    console.error(resp.error)
+                    if (selfDelete) {
+                        localStorage.setItem('flashMessage', JSON.stringify({
+                            message: 'Your employee record and associated account have been deleted.',
+                            type: 'success',
+                            length: 3000,
+                        }));
+                        window.location.href = '/';
+                    } else {
+                        modify.stopEditing();
+                        softRefresh();
+                        flashMessage('Employee deleted successfully.', 'success');
+                    }
+                } else {
+                    $('.modal.show').modal('hide');
+                    flashMessage(resp.error || 'Failed to delete employee. Please try again.', 'danger', 6000);
                 }
             },
             error: function(xhr, status, error) {
-                console.error("Could not update Employees table: " + error);
-                alert("Failed to delete employees. Please try again later.");
+                console.error("Could not delete from Employees table: " + error);
+                flashMessage('Failed to delete employee. Please try again later.', 'danger', 6000);
             }
         });
     },
@@ -218,18 +229,45 @@ function revertRecordModal(e) {
     }
     $('#revertModal').modal('toggle');
 }
-function deleteRecordModal(e) {
+async function deleteRecordModal(e) {
     if (e) e.stopPropagation();
-    // Handle deleting if done when creating new record
     if (modify.new) return $('#revertModal').modal('toggle');
 
-    const employee_name = $(`tr[data-employee-id=${selected_employee_id}]`).find('.employee-name').text().trim();
-    $('#deleteModal #deleteModalEmployee').text(employee_name);
-    $('#deleteModal').modal('toggle');
+    const isSelfDelete = Number(selected_employee_id) === Number(current_user.employee_id);
+
+    if (isSelfDelete) {
+        try {
+            const users = await $.ajax({ url: '/users/get_users', type: 'GET' });
+            const adminCount = users.filter(u => u.admin === 1).length;
+            if (adminCount <= 1) {
+                flashMessage('Cannot delete your account as you are the only admin. Please assign another admin first.', 'danger', 0);
+                return;
+            }
+        } catch (err) {
+            console.error('Failed to check admin count:', err);
+            flashMessage('Failed to verify admin status. Please try again.', 'danger', 6000);
+            return;
+        }
+        $('#deleteWarning .modal-title').html('Delete Your Employee Record?');
+        $('#deleteWarning .modal-body').html(`
+            <div class="warning-callout danger mb-3">
+                <i class="fa-solid fa-circle-exclamation"></i><strong>Warning:</strong> You are about to delete your own employee record.
+            </div>
+            <p>Deleting your employee record will also remove your associated login account. <strong>You will immediately lose access to the application.</strong></p>
+            <p>To regain access, another admin will need to create a new employee profile and login account for you.</p>
+            <p class="mb-0"><strong>This action is irreversible.</strong></p>
+        `);
+        $('#deleteWarning').modal('show');
+    } else {
+        const employee_name = $(`tr[data-employee-id=${selected_employee_id}]`).find('.employee-name').text().trim();
+        $('#deleteModal #deleteModalEmployee').text(employee_name);
+        $('#deleteModal').modal('toggle');
+    }
 }
 $('#saveChangesConfirm').on('click', function(){modify.saveChanges()});
 $('#revertChangesConfirm').on('click', function(){modify.revertChanges()});
 $('#deleteRecordConfirm').on('click', function(){modify.deleteRecord()});
+$('#confirmDeleteBtn').on('click', function(){modify.deleteRecord()});
 
 $('#addRecordBtn').on('click', function() {
     $(this).addClass('disabled');

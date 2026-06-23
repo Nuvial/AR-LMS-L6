@@ -163,6 +163,27 @@ def update_employee(employee_id, data):
         raise Exception(f"An error occurred: {e}")
 
 
+def is_last_admin(employee_id):
+    """Returns True if employee_id is an admin AND the only admin in the system."""
+    try:
+        db = get_db()
+        admin_count = db.execute("""
+            SELECT COUNT(*) as count FROM Employees e
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            WHERE r.name = 'admin'
+        """).fetchone()['count']
+        if admin_count > 1:
+            return False
+        is_admin = db.execute("""
+            SELECT COUNT(*) as count FROM Employees e
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            WHERE e.pk_employee_id = ? AND r.name = 'admin'
+        """, (employee_id,)).fetchone()['count']
+        return is_admin > 0
+    except Exception as e:
+        raise e
+
+
 def delete_employee(employee_id):
     """
     Delete an employee from the database.
@@ -179,8 +200,6 @@ def delete_employee(employee_id):
 
         # Execute the query
         db = get_db()
-        db.execute()
-
         db.execute(query, values)
         db.commit()
         

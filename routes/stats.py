@@ -6,73 +6,98 @@ from .auth import admin_required
 
 stats = Blueprint('stats', __name__)
 
+def _validate_stats_fields(data, require_all=True):
+    """Returns an error string or None if valid."""
+    attendance = data.get('attendance')
+    productivity = data.get('productivity')
+    performance = data.get('performance')
+
+    if require_all:
+        if attendance is None or productivity is None or performance is None:
+            return 'Missing required fields: attendance, productivity, performance'
+
+    if attendance is not None:
+        try:
+            val = float(attendance)
+            if not (0 <= val <= 100):
+                return 'Attendance must be between 0 and 100'
+        except (ValueError, TypeError):
+            return 'Attendance must be a number'
+
+    if productivity is not None:
+        try:
+            val = float(productivity)
+            if not (0 <= val <= 100):
+                return 'Productivity must be between 0 and 100'
+        except (ValueError, TypeError):
+            return 'Productivity must be a number'
+
+    if performance is not None:
+        try:
+            val = float(performance)
+            if not (0 <= val <= 10):
+                return 'Performance must be between 0 and 10'
+        except (ValueError, TypeError):
+            return 'Performance must be a number'
+
+    return None
+
+
 @stats.route('/create/<int:employee_id>', methods=['POST'])
 @login_required
 @admin_required
 def createStatsRoute(employee_id):
-    """
-    Route to add a new employee.
-    Args:
-        employee_id (int): Employee ID to create stats for.
-        None (expects JSON payload in request body):
-            - attendance (float): Attendance as a float 0 - 100.
-            - productivity (float): Productivity as a float from 0 - 100.
-            - performance (float): Performance as a float from 0 - 10.
-    """
     if request.method == 'POST':
         employee_data = request.get_json()
-        attendance = employee_data.get('attendance')
-        productivity = employee_data.get('productivity')
-        performance = employee_data.get('performance')
+        if not employee_data:
+            return jsonify({'message': 'error', 'error': 'Missing request body'})
 
-        if not attendance or not productivity or not performance:
-            return jsonify({"error": "Missing required fields"}), 400
-        
-        try: 
+        err = _validate_stats_fields(employee_data, require_all=True)
+        if err:
+            return jsonify({'message': 'error', 'error': err})
+
+        try:
             status = addStats(employee_id, employee_data)
             if status['status'] == 'success':
-                return jsonify({"message": "Employee stats added successfully"}), 201
+                return jsonify({'message': 'success'})
             else:
-                return jsonify({"error": "Failed to add employee stats"}), 500
+                return jsonify({'message': 'error', 'error': 'Failed to add employee stats'})
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({'message': 'error', 'error': str(e)})
 
 
 @stats.route('/get_stats', methods=['GET'])
 @stats.route('/get_stats/<int:employee_id>', methods=['GET'])
 @login_required
 def getStatsRoute(employee_id=None):
-    """
-    Route to get all or specific employee/s statistics.
-    Args:
-        employee_id (int, optional): Employee ID to get. If not provided, gets all employees.
-    """
     if request.method == 'GET':
-        stats = getStats(employee_id)
-        if stats:
-            return jsonify(stats), 200
+        stats_data = getStats(employee_id)
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/update/<int:employee_id>', methods=['PUT'])
 @login_required
 @admin_required
 def updateStatsRoute(employee_id):
-    """
-    Route to update an existing employee's stats.
-    Args:
-        employee_id (int): Employee ID to update.
-    """
     if request.method == 'PUT':
         data = request.get_json()
+        if not data:
+            return jsonify({'message': 'error', 'error': 'Missing request body'})
+
+        err = _validate_stats_fields(data, require_all=False)
+        if err:
+            return jsonify({'message': 'error', 'error': err})
+
         try:
             status = updateStats(employee_id, data)
             if status == 'success':
-                return jsonify({"message": "Employees stats updated successfully"}), 200
+                return jsonify({'message': 'success'})
             else:
-                return jsonify({"error": "Failed to update employee"}), 500
+                return jsonify({'message': 'error', 'error': 'Failed to update employee stats'})
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({'message': 'error', 'error': str(e)})
 
 
 
@@ -82,202 +107,142 @@ def updateStatsRoute(employee_id):
 @login_required
 @admin_required
 def getAttendanceTop5():
-    """
-    Route to get top 5 attendance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         attendance = Averages('attendance')
-        stats = attendance.top5()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = attendance.top5()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/attendance/bottom5', methods=['GET'])
 @login_required
 @admin_required
 def getAttendanceBottom5():
-    """
-    Route to get bottom 5 attendance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         attendance = Averages('attendance')
-        stats = attendance.bottom5()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = attendance.bottom5()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/attendance/mean', methods=['GET'])
 @login_required
 @admin_required
 def getAttendanceMean():
-    """
-    Route to get mean attendance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         attendance = Averages('attendance')
-        stats = attendance.mean()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = attendance.mean()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/attendance/median', methods=['GET'])
 @login_required
 @admin_required
 def getAttendanceMedian():
-    """
-    Route to get median attendance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         attendance = Averages('attendance')
-        stats = attendance.median()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = attendance.median()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/attendance/range', methods=['GET'])
 @login_required
 @admin_required
 def getAttendanceRange():
-    """
-    Route to get range attendance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         attendance = Averages('attendance')
-        stats = attendance.range()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = attendance.range()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/attendance/modal', methods=['GET'])
 @login_required
 @admin_required
 def getAttendanceModal():
-    """
-    Route to get modal attendance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         attendance = Averages('attendance')
-        stats = attendance.modal()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = attendance.modal()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/performance/top5', methods=['GET'])
 @login_required
 @admin_required
 def getPerformanceTop5():
-    """
-    Route to get top 5 performance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         performance = Averages('performance')
-        stats = performance.top5()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = performance.top5()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/performance/bottom5', methods=['GET'])
 @login_required
 @admin_required
 def getPerformanceBottom5():
-    """
-    Route to get bottom 5 performance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         performance = Averages('performance')
-        stats = performance.bottom5()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = performance.bottom5()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/performance/mean', methods=['GET'])
 @login_required
 @admin_required
 def getPerformanceMean():
-    """
-    Route to get mean performance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         performance = Averages('performance')
-        stats = performance.mean()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = performance.mean()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/performance/median', methods=['GET'])
 @login_required
 @admin_required
 def getPerformanceMedian():
-    """
-    Route to get median performance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         performance = Averages('performance')
-        stats = performance.median()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = performance.median()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/performance/range', methods=['GET'])
 @login_required
 @admin_required
 def getPerformanceRange():
-    """
-    Route to get range performance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         performance = Averages('performance')
-        stats = performance.range()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = performance.range()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})
 
 @stats.route('/performance/modal', methods=['GET'])
 @login_required
 @admin_required
 def getPerformanceModal():
-    """
-    Route to get modal performance employee id's
-    Returns:
-        employee_id (array): A list of employee ID's.
-    """
     if request.method == 'GET':
         performance = Averages('performance')
-        stats = performance.modal()
-        if stats:
-            return jsonify(stats), 200
+        stats_data = performance.modal()
+        if stats_data:
+            return jsonify(stats_data)
         else:
-            return jsonify({"error": "No stats found"}), 404
+            return jsonify({'message': 'error', 'error': 'No stats found'})

@@ -124,10 +124,12 @@ const new_leave = {
             data: JSON.stringify(data),
             contentType: 'application/json',
             success: function(resp){
-                if (resp.data){
+                if (resp.message === 'success'){
                     $('.modal.show').modal('hide');
                     $('#cancelAddRequestBtn').click();
                     flashMessage('Leave request has been successfully made.', 'success');
+                } else {
+                    flashMessage(resp.error || 'Could not submit leave request. Please try again.', 'danger', 6000);
                 }
             },
             error: function(xhr, status, error) {
@@ -140,10 +142,12 @@ const new_leave = {
             url: `/leave/update_leave/delete/${id}`,
             type: 'DELETE',
             success: function(resp){
-                if (resp.data){
+                if (resp.message === 'success'){
                     $('.modal.show').modal('hide');
                     $('#cancelAddRequestBtn').click();
                     flashMessage('Leave request has been successfully deleted.', 'success');
+                } else {
+                    flashMessage(resp.error || 'Could not delete leave request. Please try again.', 'danger', 6000);
                 }
             },
             error: function(xhr, status, error) {
@@ -314,10 +318,12 @@ function approveLeave(id, comment){
         data: JSON.stringify({comment: comment}),
         contentType: 'application/json',
         success: function(resp){
-            if (resp && resp.data === 'success'){
+            if (resp && resp.message === 'success'){
                 softRefresh();
                 $('.modal.show').modal('hide');
                 flashMessage('Leave Approval Successful.', 'success', 3000);
+            } else {
+                flashMessage(resp.error || 'Could not approve leave. Please try again.', 'danger', 6000);
             }
         },
         error: function(xhr, status, error) {
@@ -332,10 +338,12 @@ function rejectLeave(id, comment){
         data: JSON.stringify({comment: comment}),
         contentType: 'application/json',
         success: function(resp){
-            if (resp && resp.data === 'success'){
+            if (resp && resp.message === 'success'){
                 softRefresh();
                 $('.modal.show').modal('hide');
                 flashMessage('Leave Rejection Successful.', 'success', 3000);
+            } else {
+                flashMessage(resp.error || 'Could not reject leave. Please try again.', 'danger', 6000);
             }
         },
         error: function(xhr, status, error) {

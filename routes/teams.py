@@ -25,7 +25,7 @@ def getTeamsRoute(teamId=None):
     if request.method == 'GET':
         teams = getTeams(teamId)
         if teams or teams == []:
-            return jsonify(teams), 200
+            return jsonify(teams)
         else:
             return jsonify({"error": "No teams found"})
 
@@ -44,7 +44,7 @@ def getEmployeesRoute(teamId=None):
         employees = getEmployees(teamId)
         
         if employees['message']:
-            return jsonify(employees['employees']), 200
+            return jsonify(employees['employees'])
         else:
             return jsonify({'message': employees['message'], 'error': employees['error']})
     
@@ -60,7 +60,7 @@ def getEmployeesRoute(teamId=None):
                 continue
             return jsonify({'message': team['message'], 'error': team['error']})
         
-        return jsonify(teams), 200
+        return jsonify(teams)
 
 
 @teams.route('/get_potential_managers/', methods=['GET'])
@@ -73,7 +73,7 @@ def getPotentialManagers(teamId=None):
     if request.method == 'GET':
         employees = getPossibleManagers()
         if employees['message'] == 'success':
-            return jsonify(employees['employees']), 200
+            return jsonify(employees['employees'])
         
         return jsonify({'message': employees['message'], 'error': employees['error']})
         
@@ -97,7 +97,7 @@ def addTeam():
         )
         
         if team['message'] == 'success':
-            return jsonify({'message': 'success'}), 200
+            return jsonify({'message': 'success'})
         
         return jsonify({'message': team['message'], 'error': team['error']})
     
@@ -122,7 +122,7 @@ def updateTeamRoute(team_id):
         )
         
         if team['message'] == 'success':
-            return jsonify({'message': 'success'}), 200
+            return jsonify({'message': 'success'})
         
         return jsonify({'message': team['message'], 'error': team['error']})
 
@@ -137,6 +137,6 @@ def deleteTeamRoute(team_id):
         team = deleteTeam(team_id)
         
         if team['message'] == 'success':
-            return jsonify({'message': 'success'}), 200
+            return jsonify({'message': 'success'})
         
         return jsonify({'message': team['message'], 'error': team['error']})

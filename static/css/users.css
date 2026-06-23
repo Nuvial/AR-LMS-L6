@@ -118,3 +118,11 @@ td.actions div.forgot-pass i:not(.forgot-pass) {
     padding-left: 1em;
     font-weight: normal;
 }
+
+.actions-btns {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}

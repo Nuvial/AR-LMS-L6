@@ -74,12 +74,12 @@ function createAccount(data){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 softRefresh()
                 flashMessage('User account created successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error creating user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error creating user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -99,12 +99,12 @@ function deleteUser(user_id){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 softRefresh()
                 flashMessage('User account deleted successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error deleting user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error deleting user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -152,12 +152,12 @@ function demoteUser(user_id){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 softRefresh()
                 flashMessage('User account demoted successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error demoting user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error demoting user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -179,12 +179,12 @@ function changePassword(id, password){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 softRefresh()
                 flashMessage('User password changed successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error changing password on user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error changing password on user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -206,7 +206,7 @@ function changeUsername(id, username){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 if (id === current_user.id){
                     localStorage.setItem('flashMessage', JSON.stringify({
                         message: 'Username was changed successfully',
@@ -219,7 +219,7 @@ function changeUsername(id, username){
                 flashMessage('Username was changed successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error changing username for user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error changing username for user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -241,8 +241,6 @@ async function isEmployeeIdUnique(id){
         // if registered then not unique
         return !resp.registered;
     } catch (error){
-        console.log('Error checking employe ID '+ error);
-        alert("Failed to check employee ID. Please try again later");
         return false;
     }
 }
@@ -256,8 +254,6 @@ async function doesEmployeeExist(id){
         if (resp.error) return false;
         return true;
     } catch (error){
-        console.log('Error checking employe ID '+ error);
-        alert("Failed to check employee ID. Please try again later");
         return false;
     }
 }
@@ -358,9 +354,9 @@ function convertActions(row){
     previous_actions_html = $(row).find('.actions').clone();
 
     $(row).find('.actions').html(`
-        <div class="d-flex w-100 gap-2">
+        <div class="actions-btns">
             <button type="button" class="btn btn-primary btn-sm w-100" id="saveAccount">Save</button>
-            <button type="button" class="btn btn-secondary btn-sm w-100" id="cancelAccount">Cancel</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="cancelAccount">Cancel</button>
         </div>
     `);
 }
@@ -434,13 +430,13 @@ async function validateFields() {
                 } else if (Number(value) < 0) {
                     addFeedback(feedback_div, 'ID Must be greater than 0.', input);
                     return false;
-                } else if (!(await isEmployeeIdUnique(value))) {
-                    addFeedback(feedback_div, 'This ID is already registered.', input);
-                    return false;
                 } else if (!(await doesEmployeeExist(value))) {
                     addFeedback(feedback_div, 'Employee ID must match an employee record.', input);
                     return false;
-                }
+                } else if (!(await isEmployeeIdUnique(value))) {
+                    addFeedback(feedback_div, 'This ID is already registered.', input);
+                    return false;
+                } 
                 return true;
             })());
         }

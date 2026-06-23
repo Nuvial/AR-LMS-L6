@@ -173,6 +173,10 @@ main {
     display: none !important;
 }
 
+.warning-callout.danger {
+    background: rgba(219, 33, 0, 0.14);
+    border-left: 3px solid rgb(226, 38, 38);
+}
 .warning-callout {
     padding: 0.85rem 1rem;
     border-radius: 10px;
@@ -187,4 +191,5 @@ main {
 }
 .warning-callout strong { 
     color: rgb(219, 143, 0); 
+    font-size: larger;
 }
