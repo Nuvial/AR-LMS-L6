@@ -4,9 +4,6 @@
     height: calc(100vh - 64px);
 }
 
-div.leave-request {
-    flex: 0 0 auto;
-}
 div.leave-request .employee-records{
     max-height: 15em;
     overflow-y: auto;
