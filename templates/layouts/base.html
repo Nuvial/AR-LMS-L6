@@ -31,8 +31,7 @@
         <div class="navbar-nav flex-column w-100">
             <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" aria-current="page" href="{{ url_for('auth.dashboard') }}">Home</a>
             {% if current_user.admin %}
-            <a class="nav-link {% if active_page == 'view_records' %}active{% endif %}" href="{{ url_for('employees.index') }}">View Records</a>
-            <a class="nav-link {% if active_page == 'modify_records' %}active{% endif %}" href="{{ url_for('employees.modify_index') }}">Modify Records</a>
+            <a class="nav-link {% if active_page in ['view_records', 'modify_records'] %}active{% endif %}" href="{{ url_for('employees.index') }}">Employee Records</a>
             <a class="nav-link {% if active_page == 'process_leave' %}active{% endif %}" href="{{ url_for('leave.index') }}">Process Leave</a>
             <hr>
             <a class="nav-link {% if active_page == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('auth.admin_dashboard')}}">Admin Dashboard</a>

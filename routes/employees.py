@@ -15,7 +15,7 @@ def index():
 @login_required
 @admin_required
 def modify_index():
-    return render_template('pages/employees-modify.html', active_page='modify_records')
+    return redirect(url_for('employees.index'))
 
 @employees.route('/get_employees/self', methods=['GET'])
 @login_required

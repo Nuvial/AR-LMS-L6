@@ -4,6 +4,10 @@ let editing = false
 let employee_leave = {}; // Cache for employee leave records
 let employee_leave_calendar_cache = {}; // Cache for calendar events
 
+async function softRefresh(){
+    await loadEmployees();
+}
+
 /**
  * @param {Array} specific - Array of employee ID's to load specifically. (Optional) 
  */
@@ -216,7 +220,7 @@ function populateEmployeesRecords(data, specific) {
 }
 
 function populateLeaveTable() {
-    const leave_table_body = $('#tableView');
+    const leave_table_body = $('#tableView-tables');
 
     let html = '';
     Object.keys(employee_leave).forEach(employee_id => {
@@ -308,7 +312,8 @@ function handleLeavePeek(element, calendar) {
     if (events.length === 0) { // If employee has no leave records, set calendar to idle state
         calendarContainerDiv.removeClass('hover-calendar active-calendar')
                             .addClass('idle-calendar');
-        $('#tableView table').hide(); // Hide all tables
+        $('#tableView-tables table').hide(); // Hide all tables
+        $('#tableView-empty').show(); // Show empty state message
         return;
     }
 
@@ -317,8 +322,9 @@ function handleLeavePeek(element, calendar) {
                         .addClass('hover-calendar');
 
     // Show table view for the selected employee
-    $('#tableView table').hide(); // Hide all tables
-    $(`#tableView table[data-employee-id="${employeeId}"]`).show(); // Show the table for the hovered employee
+    $('#tableView-tables table').hide(); // Hide all tables
+    $('#tableView-empty').hide(); // Hide empty state
+    $(`#tableView-tables table[data-employee-id="${employeeId}"]`).show(); // Show the table for the hovered employee
 }
 
 function focusEmployeeRecord(element, calendar) {
@@ -337,9 +343,10 @@ function focusEmployeeRecord(element, calendar) {
 
 function deSelectRecord(record) {
     $(record).removeClass('selected-record');
-    $(record).find('.editing-controls-container').hide(300);
     selected_employee_id = null;
     editing = false;
+    $('#stats-editing-controls').fadeOut(300);
+    $('#tableView-empty').hide();
     handleStatsPeek(record);
     handleLeavePeek(record, calendar);
 }
@@ -355,7 +362,8 @@ $('#employee-records-body').on('mouseleave', 'tr', function() {
     $('#employee-stats-body div.hover-stats').removeClass('hover-stats').hide();
     $('.card-body.calendar-container').removeClass('hover-calendar')
                                       .addClass('idle-calendar');
-    $('#tableView table').hide();
+    $('#tableView-tables table').hide();
+    $('#tableView-empty').hide();
     calendar.removeAllEvents();
 });
 

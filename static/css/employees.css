@@ -33,48 +33,29 @@ html, body {
     text-align: center;
     display: flex;
     justify-content: center;
+    align-items: center;
     position: relative;
     min-height: 41px;
 }
 .card-header .averages-text {
     margin-right: auto;
 }
+.card-title {
+    flex: 3 3 auto;
+}
 #statistics-title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    margin: 0;
+    flex: 2 1 !important;
 }
 
 #addRecordBtn {
-    left: 0;
-    top: 0.5em;
-    margin-left: 1em;
-    padding: 2px 4px 2px 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    flex-wrap: nowrap;
     font-size: small;
-}
-#addRecordBtn i {
-    font-size: 10px;
     text-align: center;
-}
-.view-modify {
-    right: 0;
-    top: 0.35em;
-    padding-right: 1rem;
-    font-size: large;
-}
-.view-modify .view{
-    margin-right: 0.5rem;
-}
-.view-modify i:hover {
-    color: rgba(255, 166, 0, 0.55);
-    cursor: pointer;
-}
-.view-modify .active {
-    color: orange;
-}
-.view-modify .inactive {
-    color: gray;
 }
 
 input.form-control {
@@ -95,6 +76,9 @@ div.employee-records table {
 }
 #employee-records-body tr:hover {
     cursor: pointer;
+}
+#records-header-controls {
+    flex: 1;
 }
 #employee-stats-body .left span:not(.bs),
 #employee-stats-body .center span:not(.bs),
@@ -143,17 +127,17 @@ div.employee-records table .employee-name {
     opacity: 1;
 }
 .selected-record td {
-    transition: all 0.3s;
+    transition: all 0.15s;
     background-color: orange;
     color: black;
 }
 .selected-record:hover td {
-    transition: all 0.7s;
+    transition: all .15s;
     background-color: rgba(255, 166, 0, 0.596);
     color: black;
 }
 td {
-    transition: all 0.1s;
+    transition: all 0.15s;
 }
 
 .card-body.calendar-container {
@@ -162,16 +146,18 @@ td {
 }
 
 #viewSelector {
-    position: absolute;
-    width: min-content;
-    left: 0;
-    margin-left: 1em;
-    top: 0.35em;
+    min-width: 80px;
 }
 
 .averages-text {
+    display: none;
+    font-size: small;
     font-weight: bold;
     text-transform: capitalize;
+    border: 1px solid orange;
+    border-radius: 12px;
+    padding: .25rem .5rem .25rem .5rem;
+    box-shadow: 1px 1px 6px 0px rgba(0, 0, 0, 0.4);
 }
 .averages-text .value{
     color: orange;
@@ -179,47 +165,19 @@ td {
 
 /* Editing */
 .editing-controls-container {
-    display: flex;
-    gap: 6px;
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-}
-.editing-controls-container div:hover {
-    background-color: rgb(116, 75, 0);
-    transition: background-color 0.3s;
-}
-.editing-controls-container div:active {
-    opacity: 0.6;
-}
-.editing-controls-container div:hover i {
-    color: black;
-    transition: color 0.3s;
-}
-.editing-controls-container div.disabled,
-.editing-controls-container div.disabled i,
-.editing-controls-container div.disabled:active {
-    color: rgba(255, 166, 0, 0.25) !important;
-    cursor: not-allowed !important;
-    opacity: 1 !important;
-    background-color: black !important;
-}
-
-.icon-square {
-    width: 28px;
-    height: 28px;
+    flex: 1 1 auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 4px;
-    background-color: black;
-    cursor: pointer;
+    gap: 6px;
+    flex-wrap: wrap;
 }
-
-.icon-square i {
-    font-size: 14px;
-    color: orange;
+.editing-controls-container button {
+    display: flex;
+    flex: 1 0;
+    min-width: fit-content;
+    justify-content: space-around;
+    align-items: center;
 }
 
 .calendar-event:hover,

@@ -104,40 +104,35 @@
     <div class="flex-child">
         <div class="card">
             <div class="card-header d-flex justify-content-center">
-                {% if current_user.admin and active_page == 'modify_records' %}
-                <button type="button" class="btn btn-primary btn-sm position-absolute" id="addRecordBtn">Add <i class="fas fa-plus"></i></button>
-                {% endif %}
-                {% if current_user.admin and active_page == 'view_records' %}
-                <select class="form-select form-select-sm" id="viewSelector">
-                    <option selected>View All</option>
-                    <hr>
-                    <optgroup label="Attendance">
-                        <option value="attendance-top5">Top 5</option>
-                        <option value="attendance-bottom5">Bottom 5</option>
-                        <option value="attendance-mean">Mean</option>
-                        <option value="attendance-median">Median</option>
-                        <option value="attendance-range">Range</option>
-                        <option value="attendance-modal">Modal</option>
-                    </optgroup>
-                    <hr>
-                    <optgroup label="Performance">
-                        <option value="performance-top5">Top 5</option>
-                        <option value="performance-bottom5">Bottom 5</option>
-                        <option value="performance-mean">Mean</option>
-                        <option value="performance-median">Median</option>
-                        <option value="performance-range">Range</option>
-                        <option value="performance-modal">Modal</option>
-                    </optgroup>
-                </select>
+                {% if current_user.admin %}
+                <button type="button" class="btn btn-primary btn-sm" id="addRecordBtn">Add <i class="fas fa-plus"></i></button>
                 {% endif %}
                 <h5 class="card-title mb-0">Employee Records</h5>
-                <div class="view-modify position-absolute">
-                    {% if current_user.admin %}
-                    <i class="fas fa-eye 2xl view {% if active_page == 'view_records'%}active{% else %}inactive{% endif %}" href="{{ url_for('employees.index') }}"></i>
-                    <i class="fas fa-pen-to-square 2xl modify
-                                {% if active_page == 'modify_records'%}active{% else %}inactive{% endif %}" href="{{ url_for('employees.modify_index') }}"></i>
-                    {% endif %}
+                {% if current_user.admin %}
+                <div id="records-header-controls">
+                    <select class="form-select form-select-sm" id="viewSelector" style="width: auto;">
+                        <option selected>View All</option>
+                        <hr>
+                        <optgroup label="Attendance">
+                            <option value="attendance-top5">Top 5</option>
+                            <option value="attendance-bottom5">Bottom 5</option>
+                            <option value="attendance-mean">Mean</option>
+                            <option value="attendance-median">Median</option>
+                            <option value="attendance-range">Range</option>
+                            <option value="attendance-modal">Modal</option>
+                        </optgroup>
+                        <hr>
+                        <optgroup label="Performance">
+                            <option value="performance-top5">Top 5</option>
+                            <option value="performance-bottom5">Bottom 5</option>
+                            <option value="performance-mean">Mean</option>
+                            <option value="performance-median">Median</option>
+                            <option value="performance-range">Range</option>
+                            <option value="performance-modal">Modal</option>
+                        </optgroup>
+                    </select>
                 </div>
+                {% endif %}
             </div>
             <div class="card-body employee-records">
                 <input class="form-control" id="employee-search" placeholder="ID/Name...">
@@ -156,7 +151,14 @@
                     <div class="label"></div>
                     <div class="value"></div>
                 </div>
-                <h5 class="card-title" id="statistics-title">Statistics</h5>
+                <h5 class="card-title mb-0" id="statistics-title">Statistics</h5>
+                {% if current_user.admin %}
+                <div class="editing-controls-container" id="stats-editing-controls" style="display: none;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="saveRecordModal(event)">Save <i class="fas fa-floppy-disk"></i></button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="revertRecordModal(event)">Cancel <i class="fas fa-rotate-left"></i></button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="deleteRecordModal(event)">Delete <i class="fas fa-trash"></i></button>
+                </div>
+                {% endif %}
             </div>
             <form id="employee-form" class="needs-validation" novalidate>
                 <div id="employee-stats-body" class="card-body stats">
@@ -174,7 +176,10 @@
             </div>
             <div class="card-body calendar-container idle-calendar">
                 <div id="calendar"></div>
-                <div id="tableView" style="display: none;"></div>
+                <div id="tableView" style="display: none;">
+                    <p id="tableView-empty" class="text-center text-muted py-3" style="display: none;">No leave this year to view or action.</p>
+                    <div id="tableView-tables"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -184,12 +189,5 @@
 </script>
 <script src="{{ url_for('static', filename='js/employees/employees.js') }}"></script>
 <script src="{{ url_for('static', filename='js/leave/leave.js') }}"></script>
-<script>
-    $(document).ready(function(){
-        $('.view-modify i').not('.disabled').on('click', function(){
-            window.location.href = $(this).attr('href');
-        });
-    });
-</script>
 {% block scripts %}{% endblock %}
 {% endblock %}

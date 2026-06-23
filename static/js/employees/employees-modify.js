@@ -20,7 +20,7 @@ const modify = {
         return $(`div[data-employee-id=${selected_employee_id}]`).find(selector).val();
     },
     updateData: function() {
-        // Iterates through the table rows and updates the new_data object with the current values 
+        // Iterates through the table rows and updates the new_data object with the current values
         this.new_data.employees = {
             first_name: this.getDataCell('.employee-first-name'),
             last_name: this.getDataCell('.employee-last-name'),
@@ -175,6 +175,7 @@ const modify = {
 $(document).ready(async function(){
     // Ensure calendar view is default
     $('#toggleTableView')[0].checked = false;
+    $('#viewSelector').val('View All');
 
     // Begin loading employees data
     await loadEmployees();
@@ -182,36 +183,23 @@ $(document).ready(async function(){
     // Initialise elements
     calendar = initCalendar('#calendar', '100%', true);
     initSearch(
-        '#employee-search', 
-        '#employee-records-body tr', 
+        '#employee-search',
+        '#employee-records-body tr',
         [
             {selector: '.employee-name'},
             {selector: '.employee-id'}
         ]
     );
     initTableToggle();
-
-    // Add editing UI dynamically to stats
-    initSaveButtons();
 });
 
 async function softRefresh(){
     await loadEmployees();
-    initSaveButtons();
 }
 
 function initSaveButtons(){
-    const records = $('#employee-records-body tr');
-    records.find('.editing-controls-container').remove();
-    records.each(function(index, record){
-        $(record).find('.employee-name').append(`
-            <div class="editing-controls-container" style="display: none;">
-                <div class="icon-square" onclick="saveRecordModal(event)"><i class="fas fa-floppy-disk"></i></div>
-                <div class="icon-square" onclick="revertRecordModal(event)"><i class="fas fa-rotate-left"></i></div>
-                <div class="icon-square" onclick="deleteRecordModal(event)"><i class="fas fa-trash"></i></div>
-            </div>
-        `)
-    });
+    // Editing controls live in the Statistics card header; ensure hidden on init
+    $('#stats-editing-controls').fadeOut(300);
 }
 
 function saveRecordModal(e) {
@@ -262,14 +250,14 @@ $('#addRecordBtn').on('click', function() {
     new_stats.find('.employee-leave-remaining').text('');
     new_stats.find('.employee-sick-remaining').text('');
     new_stats.find('.employee-stats-recorded').text('');
+    new_stats.find('.id').hide(); // Employee ID is auto-generated; hide for new records
 
     last_row.after(new_record);
     last_stats.after(new_stats);
 
     modify.new = true;
-    initSaveButtons();
     new_record.click();
-    
+
 });
 
 function validateFields(){
@@ -304,11 +292,11 @@ function validateFields(){
             }
         }
 
-        // Position: alphanumeric, length 1-32
+        // Position: letters, numbers, and spaces; length 1-32
         if (field === 'employee-position') {
-            if (!isAlphaNumeric(value)) {
-                invalidate(feedback, 'Position must be alphanumeric', input);
-            } else if (!isValidLength(value, 0, 33)) {
+            if (!isValidPosition(value)) {
+                invalidate(feedback, 'Position must contain only letters, numbers and spaces', input);
+            } else if (!isValidLength(value.trim(), 0, 33)) {
                 invalidate(feedback, 'Position must be 1-32 characters', input);
             }
         }
@@ -357,6 +345,9 @@ function validateFields(){
 }
 
 $('#employee-records-body').on('click', 'tr', function() {
+    // Admin-only: editing controls must be present
+    if (!$('#stats-editing-controls').length) return;
+
     // Handle selecting employee record
     if (editing){
         if (modify.modified() || modify.new) revertRecordModal();
@@ -364,17 +355,83 @@ $('#employee-records-body').on('click', 'tr', function() {
         return;
     };
 
-    const editing_containers = $('.editing-controls-container');
-    const this_editing_container = $(this).find('.editing-controls-container');
     const selected = $(this).data('employee-id') == selected_employee_id;
     $('#addRecordBtn').addClass('disabled');
 
-    editing_containers.hide(300);
     if (selected) {
-        this_editing_container.fadeIn(300);
+        $('#stats-editing-controls').fadeIn(300);
         editing = true;
 
         createInputFields(`#employee-stats-body div[data-employee-id=${selected_employee_id}]`, 'sm', true);
         modify.setOriginalData();
+    }
+});
+
+// View selector (admin only)
+function call(url, area, text, averages=false){
+    $.ajax({
+        url: `/stats/${area}/${url}`,
+        type: 'GET',
+        beforeSend: function(){
+            $('.averages-text .label').text('');
+            $('.averages-text .value').text('');
+        },
+        success: function(resp){
+            if (resp.length > 1){
+                const id_list = resp.map(id => id.fk_employee_id);
+                loadEmployees(id_list);
+
+                if (averages){
+                    let percentage = area === 'attendance' ? '%' : '';
+                    $('.averages-text .label').text(`${text} ${area}:`);
+                    $('.averages-text .value').text(`${resp[0][`${text}_${area}`].toFixed(2)} ${percentage}`);
+                }
+            }
+        },
+        complete: function(){
+            hideLoader()
+        },
+        error: function(xhr, status, error) {
+            console.error(`Could not get ${text} attendance: ${error}`);
+            alert(`Failed to get ${text} attendance. Please try again later.`);
+        }
+    });
+}
+
+$('#viewSelector').on('change', function(){
+    const option = $(this).val();
+    showLoader();
+    if (selected_employee_id){
+        deSelectRecord($('.selected-record'));
+    }
+
+    if (option === 'View All'){
+        $('.averages-text .label').text('');
+        $('.averages-text .value').text('');
+        loadEmployees();
+    } else if (option === 'attendance-top5'){
+        call('top5', 'attendance', 'top 5');
+    } else if (option === 'attendance-bottom5'){
+        call('bottom5', 'attendance', 'bottom 5');
+    } else if (option === 'attendance-mean'){
+        call('mean', 'attendance', 'mean', true);
+    } else if (option === 'attendance-median'){
+        call('median', 'attendance', 'median', true);
+    } else if (option === 'attendance-range'){
+        call('range', 'attendance', 'range', true);
+    } else if (option === 'attendance-modal'){
+        call('modal', 'attendance', 'modal', true);
+    } else if (option === 'performance-top5'){
+        call('top5', 'performance', 'top5');
+    } else if (option === 'performance-bottom5'){
+        call('bottom5', 'performance', 'bottom 5');
+    } else if (option === 'performance-mean'){
+        call('mean', 'performance', 'mean', true);
+    } else if (option === 'performance-median'){
+        call('median', 'performance', 'median', true);
+    } else if (option === 'performance-range'){
+        call('range', 'performance', 'range', true);
+    } else if (option === 'performance-modal'){
+        call('modal', 'performance', 'modal', true);
     }
 });

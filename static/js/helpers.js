@@ -187,7 +187,9 @@ function createInputFields(selector, size='sm', copy_classes=false, required=fal
         const classes = copy_classes 
                         ? $(field).attr('class')
                         : '';
-        const [value, unit] = !(classes.includes('name'))
+        // Name and position fields are treated as a single value (no unit suffix)
+        const isSingleValue = classes.includes('name') || classes.includes('employee-position');
+        const [value, unit] = !isSingleValue
                         ? $(field).text().trim().split(' ')
                         : [$(field).text().trim(), ''];
         const isRequired = required === true 
@@ -198,7 +200,7 @@ function createInputFields(selector, size='sm', copy_classes=false, required=fal
             <div class="input-group input-group-${size} mb-1 has-validation">
                 <input name="${first_class}" class="bs form-control ${classes}" value="${value}" ${isRequired}>
         `
-        if (unit && isAlphaNumeric(unit) && !(classes.includes('name'))){
+        if (unit && isAlphaNumeric(unit) && !isSingleValue){
             input += `<span class="bs input-group-text">${unit}</span>`
         }
         input += `
@@ -253,11 +255,19 @@ function isValidTeamName(str){
 }
 /**
  * Simple check to test if a string is alpha numeric
- * @param {String} str 
+ * @param {String} str
  * @returns {Boolean}
  */
 function isAlphaNumeric(str) {
     return /^[a-z0-9]+$/i.test(str);
+}
+/**
+ * Check if a string is a valid position name (letters, numbers, and spaces; no leading/trailing spaces)
+ * @param {String} str
+ * @returns {Boolean}
+ */
+function isValidPosition(str) {
+    return /^[a-zA-Z0-9][a-zA-Z0-9 ]*$/.test(str.trim()) && str.trim().length > 0;
 }
 /**
  * Simple check if a string contains only numbers (0-9)
