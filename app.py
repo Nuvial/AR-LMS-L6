@@ -1,6 +1,6 @@
 import os
 from flask import Flask, redirect, url_for, g
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_bcrypt import Bcrypt
 
 from routes.models.auth import User, registerUser, upgradeUser
@@ -40,7 +40,19 @@ login_manager.login_message_category = 'warning'
 
 @app.route('/')
 def index():
-    return redirect(url_for('auth.dashboard', active_page='dashboard'))
+    if current_user.is_authenticated:
+        return redirect(url_for('auth.dashboard'))
+    return redirect(url_for('auth.login'))
+
+
+@app.after_request
+def prevent_caching(response):
+    # Force the browser to revalidate all pages so history.back() can't serve a cached authenticated page after the user has logged out.
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 @app.route('/ping')
 def ping():
