@@ -8,17 +8,21 @@
     <div id="employeesPage">
         <div class="card" href="{{ url_for('employees.index') }}">
             <div class="card-body">
-                <i class="fas fa-clipboard fa-2xl position-absolute top-0 end-0 m-4 pt-2"></i>
-                {% if current_user.admin %}
-                <h5 class="card-title">All Employee Records</h5>
-                <h6 class="card-subtitle mb-2">View, modify, and manage all employee records.</h6>
-                {% elif current_user.is_manager %}
-                <h5 class="card-title">Team Records</h5>
-                <h6 class="card-subtitle mb-2">View, modify, and manage all employee records in your team.</h6>
-                {% else %}
-                <h5 class="card-title">My Record</h5>
-                <h6 class="card-subtitle mb-2">View your employee record.</h6>
-                {% endif %}
+                <div class="header">
+                    <div class="titles">
+                        {% if current_user.admin %}
+                        <h5 class="card-title">All Employee Records</h5>
+                        <h6 class="card-subtitle mb-2">View, modify, and manage all employee records.</h6>
+                        {% elif current_user.is_manager %}
+                        <h5 class="card-title">Team Records</h5>
+                        <h6 class="card-subtitle mb-2">View, modify, and manage all employee records in your team.</h6>
+                        {% else %}
+                        <h5 class="card-title">My Record</h5>
+                        <h6 class="card-subtitle mb-2">View your employee record.</h6>
+                        {% endif %}
+                    </div>
+                    <i class="fas fa-clipboard fa-2xl"></i>
+                </div>
                 <hr>
 
                 {% if current_user.admin %}
@@ -43,17 +47,21 @@
     <div id="leavePage">
         <div class="card" href="{{ url_for('leave.index') }}">
             <div class="card-body">
-                <i class="fas fa-calendar-days fa-2xl position-absolute top-0 end-0 m-4 pt-2"></i>
-                {% if current_user.admin %}
-                <h5 class="card-title">Process Leave</h5>
-                <h6 class="card-subtitle mb-2">Process any active leave requests for all employees.</h6>
-                {% elif current_user.is_manager %}
-                <h5 class="card-title">Process Leave</h5>
-                <h6 class="card-subtitle mb-2">Process any active leave requests for all employees in your team.</h6>
-                {% else %}
-                <h5 class="card-title">Manage Leave</h5>
-                <h6 class="card-subtitle mb-2">View or create new leave requests.</h6>
-                {% endif %}
+                <div class="header">
+                    <div class="titles">
+                        {% if current_user.admin %}
+                        <h5 class="card-title">Process Leave</h5>
+                        <h6 class="card-subtitle mb-2">Process any active leave requests for all employees.</h6>
+                        {% elif current_user.is_manager %}
+                        <h5 class="card-title">Process Leave</h5>
+                        <h6 class="card-subtitle mb-2">Process any active leave requests for all employees in your team.</h6>
+                        {% else %}
+                        <h5 class="card-title">Manage Leave</h5>
+                        <h6 class="card-subtitle mb-2">View or create new leave requests.</h6>
+                        {% endif %}
+                    </div>
+                    <i class="fas fa-calendar-days fa-2xl"></i>
+                </div>
                 <hr>
                 {% if current_user.admin %}
                 <p class="card-text">
@@ -85,17 +93,21 @@
     <div id="accountsPage">
         <div class="card" href="{{ url_for('users.index') }}">
             <div class="card-body">
-                <i class="fas fa-users fa-2xl position-absolute top-0 end-0 m-4 pt-2"></i>
-                {% if current_user.admin %}
-                <h5 class="card-title">Login Accounts</h5>
-                <h6 class="card-subtitle mb-2">Amend employee user login details.</h6>
-                {% elif current_user.is_manager %}
-                <h5 class="card-title">Login Accounts</h5>
-                <h6 class="card-subtitle mb-2">Amend your team's employee user login details.</h6>
-                {% else %}
-                <h5 class="card-title">Change Login Account Details</h5>
-                <h6 class="card-subtitle mb-2">Amend account login details.</h6>
-                {% endif %}
+                <div class="header">
+                    <div class="titles">
+                        {% if current_user.admin %}
+                        <h5 class="card-title">Login Accounts</h5>
+                        <h6 class="card-subtitle mb-2">Amend employee user login details.</h6>
+                        {% elif current_user.is_manager %}
+                        <h5 class="card-title">Login Accounts</h5>
+                        <h6 class="card-subtitle mb-2">Amend your team's employee user login details.</h6>
+                        {% else %}
+                        <h5 class="card-title">Change Login Account Details</h5>
+                        <h6 class="card-subtitle mb-2">Amend account login details.</h6>
+                        {% endif %}
+                    </div>
+                    <i class="fas fa-users fa-2xl"></i>
+                </div>
                 <hr>
                 {% if current_user.admin %}
                 <p class="card-text">
@@ -131,9 +143,13 @@
     <div id="teamsManagementPage">
         <div class="card" href="{{ url_for('teams.index') }}">
             <div class="card-body">
-                <i class="fas fa-sitemap fa-2xl position-absolute top-0 end-0 m-4 pt-2"></i>
-                <h5 class="card-title">Team Management</h5>
-                <h6 class="card-subtitle mb-2">Create and amend teams.</h6>
+                <div class="header">
+                    <div class="titles">
+                        <h5 class="card-title">Team Management</h5>
+                        <h6 class="card-subtitle mb-2">Create and amend teams.</h6>
+                    </div>
+                    <i class="fas fa-sitemap fa-2xl"></i>
+                </div>
                 <hr>
                 <p class="card-text">
                     As an admin, you can create and modify teams of employees to create team hierarchies.
@@ -149,9 +165,13 @@
     <div id="profileSettingsPage">
         <div class="card" href="{{ url_for('users.settings') }}">
             <div class="card-body">
-                <i class="fas fa-user-gear fa-2xl position-absolute top-0 end-0 m-4 pt-2"></i>
-                <h5 class="card-title">Change Personal Login Profile Account Details</h5>
-                <h6 class="card-subtitle mb-2">Amend account login details.</h6>
+                <div class="header">
+                    <div class="titles">
+                        <h5 class="card-title">Change Personal Login Profile Account Details</h5>
+                        <h6 class="card-subtitle mb-2">Amend account login details.</h6>
+                    </div>
+                    <i class="fas fa-user-gear fa-2xl"></i>
+                </div>
                 <hr>
                 <p class="card-text">
                     View and modify personal login account details such as username or password, or even delete the login account entirely. 

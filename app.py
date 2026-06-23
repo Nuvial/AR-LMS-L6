@@ -8,7 +8,10 @@ from db import get_db
 
 app = Flask(__name__)
 bcrypt = Bcrypt()
-app.secret_key = 'secret_key'  # TODO: Replace with a secure key
+secret_key = os.environ.get('FLASK_SECRET_KEY')
+if not secret_key:
+    raise RuntimeError('FLASK_SECRET_KEY environment variable is not set.')
+app.secret_key = secret_key
 
 # === Blueprint Registration ===
 from routes.employees import employees
