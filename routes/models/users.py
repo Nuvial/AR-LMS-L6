@@ -50,7 +50,7 @@ def _check_hibp(password):
 def validate_password(password, current_hash=None):
     """
     OWASP-aligned password validation (NIST SP 800-63B / OWASP ASVS V2.1).
-    Returns a list of error strings; an empty list means the password is valid.
+    Returns a list of error strings - empty list means the password is valid.
 
     HIBP failure policy: fail open if the API is unreachable the check is
     skipped rather than blocking the user.
@@ -145,6 +145,25 @@ def isUserInManagerTeam(user_id, manager_employee_id):
     except Exception:
         return False
 
+def validate_delete_user(user_id):
+    """
+    Validates that a user account can be deleted.
+    Returns an error string if deletion is not allowed, or None if valid.
+    """
+    if current_user.admin and user_id == current_user.id:
+        db = get_db()
+        other_admins = db.execute("""
+            SELECT u.pk_user_id
+            FROM Users u
+            JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
+            WHERE r.name = 'admin' AND u.pk_user_id != ?
+        """, (user_id,)).fetchall()
+        if not other_admins:
+            return 'Unable to delete the only admin account. Please assign another admin before deleting this account.'
+    return None
+
+
 def deleteUser(user_id=None):
     """
     Model to delete a specific user.
@@ -152,30 +171,12 @@ def deleteUser(user_id=None):
         user_id (int): User ID to delete.
     """
     try:
+        error = validate_delete_user(user_id)
+        if error:
+            return {'message': 'error', 'error': error}
+
         db = get_db()
-
-        # Prevent deleting the last admin account
-        if current_user.admin and user_id == current_user.id:
-            validationQuery = """
-                SELECT u.pk_user_id
-                FROM Users u
-                JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
-                JOIN Roles r ON e.fk_role_id = r.pk_role_id
-                WHERE r.name = 'admin' AND u.pk_user_id != ?
-            """
-            otherAdmins = db.execute(validationQuery, (user_id,)).fetchall()
-            if len(otherAdmins) == 0:
-                return {'message': 'error', 'error': 'Unable to delete the only admin account. Please assign another admin before deleting this account.'}
-
-        # Create base query
-        query = """
-            DELETE FROM Users
-            WHERE pk_user_id = ?
-        """
-        values = (user_id,)
-        
-        # Execute the query
-        db.execute(query, values)
+        db.execute("DELETE FROM Users WHERE pk_user_id = ?", (user_id,))
         db.commit()
 
         return {'message': 'success'}

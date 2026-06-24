@@ -148,25 +148,53 @@ def denyRegistration(user_id):
         return {'message': 'error', 'error': str(e)}
 
 
+def validate_upgrade_user(user_id):
+    """
+    Validates that a user can be promoted to admin.
+    Returns an error string if the promotion is not allowed, or None if valid.
+    """
+    db = get_db()
+    if db.execute("""
+        SELECT pk_team_id FROM Team
+        WHERE fk_manager_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
+    """, (user_id,)).fetchone():
+        return 'Cannot promote a team manager to admin. Remove them from team management first.'
+
+    if db.execute("""
+        SELECT fk_team_id FROM Employees e
+        WHERE fk_team_id IS NOT NULL AND pk_employee_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
+    """, (user_id,)).fetchone():
+        return 'Cannot promote a team member to admin. Remove them from the team first.'
+
+    return None
+
+
+def validate_demote_user(user_id):
+    """
+    Validates that a user can be demoted from admin.
+    Returns an error string if the demotion is not allowed, or None if valid.
+    """
+    db = get_db()
+    admin_count = db.execute("""
+        SELECT COUNT(*) as count
+        FROM Users u
+        JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+        JOIN Roles r ON e.fk_role_id = r.pk_role_id
+        WHERE r.name = 'admin'
+    """).fetchone()['count']
+    if admin_count <= 1:
+        return 'Cannot demote the only admin account. Please assign another admin first.'
+    return None
+
+
 def upgradeUser(user_id):
     """Promote a user to admin by updating their role in Employees."""
     try:
+        error = validate_upgrade_user(user_id)
+        if error:
+            return {'message': 'error', 'error': error}
+
         db = get_db()
-
-        is_team_manager = db.execute("""
-            SELECT pk_team_id FROM Team
-            WHERE fk_manager_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
-        """, (user_id,)).fetchone()
-        if is_team_manager:
-            return {'message': 'error', 'error': 'Cannot promote a team manager to admin. Remove them from team management first.'}
-
-        is_team_member = db.execute("""
-            SELECT fk_team_id FROM Employees e
-            WHERE fk_team_id IS NOT NULL AND pk_employee_id = (SELECT fk_employee_id FROM Users where pk_user_id = ?)
-        """, (user_id,)).fetchone()
-        if is_team_member:
-            return {'message': 'error', 'error': 'Cannot promote a team member to admin. Remove them from the team first.'}
-
         db.execute("""
             UPDATE Employees
             SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'admin')
@@ -182,17 +210,11 @@ def upgradeUser(user_id):
 def demoteUser(user_id):
     """Demote a user back to employee by updating their role in Employees."""
     try:
-        db = get_db()
-        admin_count = db.execute("""
-            SELECT COUNT(*) as count
-            FROM Users u
-            JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
-            JOIN Roles r ON e.fk_role_id = r.pk_role_id
-            WHERE r.name = 'admin'
-        """).fetchone()['count']
-        if admin_count <= 1:
-            return {'message': 'error', 'error': 'Cannot demote the only admin account. Please assign another admin first.'}
+        error = validate_demote_user(user_id)
+        if error:
+            return {'message': 'error', 'error': error}
 
+        db = get_db()
         db.execute("""
             UPDATE Employees
             SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')

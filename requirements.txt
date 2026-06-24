@@ -4,3 +4,4 @@ Flask-Bcrypt==1.0.1
 Flask-WTF==1.2.2
 python-dotenv==1.2.2
 Gunicorn
+pytest
