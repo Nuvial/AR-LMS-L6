@@ -4,4 +4,8 @@ Flask-Bcrypt==1.0.1
 Flask-WTF==1.2.2
 python-dotenv==1.2.2
 Gunicorn
-pytest
+
+pytest==9.1.1
+pytest-cov==7.1.0
+coverage==7.14.3
+hypothesis==6.155.7

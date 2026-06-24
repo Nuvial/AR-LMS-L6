@@ -1,12 +1,5 @@
 """
-Covers pure functions and helpers that require no database or running server:
-  - validate_password
-  - _check_hibp
-  - User role helpers
-  - Bcrypt hash
-
-All external HTTP calls are replaced with unittest.mock so everything
-runs offline without touching the HIBP (Have I Been Pwned) API.
+Covers pure functions and helpers that require no database or running server
 """
 import hashlib
 import urllib.error
@@ -140,12 +133,15 @@ class TestValidatePasswordReuse:
 
 class TestValidatePasswordHIBP:
     """
-    Reject passwords appearing in breach corpuses.
+    Reject passwords appearing in breaches.
     Fail-open policy: if HIBP is unreachable, the password is allowed through.
     """
 
     def test_breached_password_is_rejected(self):
-        with patch('routes.models.users._check_hibp', return_value=1):
+        # Force the breach check on regardless of the ambient HIBP_ENABLED env
+        # (the test suite disables it globally to stay offline).
+        with patch('routes.models.users._HIBP_ENABLED', True), \
+                patch('routes.models.users._check_hibp', return_value=1):
             errors = validate_password('ValidFormat1!')
         assert errors, 'Password found in breach database must be rejected'
         assert any(
@@ -155,7 +151,8 @@ class TestValidatePasswordHIBP:
         )
 
     def test_breach_count_appears_in_error_message(self):
-        with patch('routes.models.users._check_hibp', return_value=9_999):
+        with patch('routes.models.users._HIBP_ENABLED', True), \
+                patch('routes.models.users._check_hibp', return_value=9_999):
             errors = validate_password('ValidFormat1!')
         assert any('9,999' in e or '9999' in e for e in errors), \
             f'Breach count should appear in the error message; got: {errors}'
