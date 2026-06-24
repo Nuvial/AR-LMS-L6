@@ -78,13 +78,13 @@ def usernameTaken(username):
     return db.execute(query, (username,)).fetchone() is not None
 
 
-def registerUser(data):
+def registerUser(data, pending=False):
     try:
         query = """
-            INSERT INTO Users (fk_employee_id, username, password)
-            VALUES (?, ?, ?)
+            INSERT INTO Users (fk_employee_id, username, password, pending_confirmation)
+            VALUES (?, ?, ?, ?)
         """
-        values = (data['employee_id'], data['username'], data['hashed_password'])
+        values = (data['employee_id'], data['username'], data['hashed_password'], 1 if pending else 0)
 
         db = get_db()
         cursor = db.execute(query, values)
@@ -92,6 +92,48 @@ def registerUser(data):
         return {'message': 'success', 'pk_user_id': cursor.lastrowid}
     except Exception as e:
         return {'message': 'error', 'error': e}
+
+
+def getPendingUsers():
+    try:
+        db = get_db()
+        query = """
+            SELECT u.pk_user_id, u.fk_employee_id, u.username,
+                   e.first_name, e.last_name
+            FROM Users u
+            JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+            WHERE u.pending_confirmation = 1
+            ORDER BY u.pk_user_id
+        """
+        return [dict(row) for row in db.execute(query).fetchall()]
+    except Exception as e:
+        raise Exception(f"An error occurred: {e}")
+
+
+def confirmRegistration(user_id):
+    try:
+        db = get_db()
+        db.execute(
+            "UPDATE Users SET pending_confirmation = 0 WHERE pk_user_id = ? AND pending_confirmation = 1",
+            (user_id,)
+        )
+        db.commit()
+        return {'message': 'success'}
+    except Exception as e:
+        return {'message': 'error', 'error': str(e)}
+
+
+def denyRegistration(user_id):
+    try:
+        db = get_db()
+        db.execute(
+            "DELETE FROM Users WHERE pk_user_id = ? AND pending_confirmation = 1",
+            (user_id,)
+        )
+        db.commit()
+        return {'message': 'success'}
+    except Exception as e:
+        return {'message': 'error', 'error': str(e)}
 
 
 def upgradeUser(user_id):

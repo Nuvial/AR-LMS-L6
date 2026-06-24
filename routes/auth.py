@@ -35,12 +35,16 @@ def admin_or_manager_required(f):
 def login():
     login_form = LoginForm()
     if request.method == 'POST' and login_form.validate_on_submit():
-        user = User.get(login_form.username.data)
-        if user and bcrypt.check_password_hash(user.password, login_form.password.data):
+        user_data = getUserData(login_form.username.data)
+        if user_data and bcrypt.check_password_hash(user_data['password'], login_form.password.data):
+            if user_data['pending_confirmation']:
+                flash('Your account registration is awaiting admin confirmation. Please contact an administrator.', 'warning')
+                return render_template('pages/login.html', login_form=login_form)
+            user = User(user_data['pk_user_id'], user_data['fk_employee_id'], user_data['username'], user_data['password'], user_data['role'])
             unForgotPassword(user.id)
             login_user(user)
             return redirect(url_for('auth.dashboard', active_page='dashboard'))
-        
+
         flash('Either the username or password are incorrect. Please try again.', 'danger')
     return render_template('pages/login.html', login_form=login_form)
 
@@ -72,16 +76,16 @@ def register():
             return render_template('pages/register.html', register_form=form)
 
 
-        # Register user
+        # Register user (pending admin confirmation)
         data = {
             'employee_id': employee_id,
             'username': username,
             'hashed_password': hashed_password
         }
-        status = registerUser(data)
+        status = registerUser(data, pending=True)
 
         if status['message'] == 'success':
-            flash('Registration Successful! You may now log in.', 'success')
+            flash('Registration submitted. Your account is awaiting admin confirmation before you can log in.', 'success')
             return redirect(url_for('auth.login'))
     return render_template('pages/register.html', register_form=form)
 

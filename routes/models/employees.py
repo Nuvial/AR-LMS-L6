@@ -78,7 +78,7 @@ def get_employees(employee_id=None):
             conditions.append("e.pk_employee_id = ?")
             values += (employee_id,)
         
-        if (not current_user.admin and employee_id != current_user.employee_id):
+        if (current_user.is_authenticated and not current_user.admin and employee_id != current_user.employee_id):
             # Only return members who are part of the logged in users team (and themselves)
             conditions.append("(t.fk_manager_id = ? OR e.pk_employee_id = ?)")
             values += (current_user.employee_id, current_user.employee_id)

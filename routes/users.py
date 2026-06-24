@@ -4,8 +4,8 @@ from flask import request, jsonify, Blueprint, render_template, redirect, url_fo
 from flask_login import login_required, current_user
 from flask_bcrypt import Bcrypt
 
-from .models.users import getUsers, deleteUser, changePassword, changeUsername, isUserInManagerTeam
-from .models.auth import isEmployeeIdRegistered, usernameTaken, registerUser, upgradeUser, demoteUser
+from .models.users import getUsers, deleteUser, changePassword, changeUsername, isUserInManagerTeam, getUnregisteredEmployees
+from .models.auth import isEmployeeIdRegistered, usernameTaken, registerUser, upgradeUser, demoteUser, getPendingUsers, confirmRegistration, denyRegistration
 from .models.employees import get_employees
 from .auth import admin_required, admin_or_manager_required
 
@@ -214,6 +214,38 @@ def changeUsernameSelf():
             return jsonify({'message': 'success'})
         else:
             return jsonify({'message': 'error', 'error': 'Failed to change username'})
+
+@users.route('/get_unregistered_employees', methods=['GET'])
+@login_required
+@admin_required
+def getUnregisteredEmployeesRoute():
+    employees = getUnregisteredEmployees()
+    return jsonify(employees)
+
+@users.route('/pending_registrations', methods=['GET'])
+@login_required
+@admin_required
+def getPendingRegistrationsRoute():
+    pending = getPendingUsers()
+    return jsonify(pending)
+
+@users.route('/confirm_registration/<int:user_id>', methods=['PUT'])
+@login_required
+@admin_required
+def confirmRegistrationRoute(user_id):
+    result = confirmRegistration(user_id)
+    if result['message'] == 'success':
+        return jsonify({'message': 'success'})
+    return jsonify({'message': 'error', 'error': result.get('error', 'Failed to confirm registration')})
+
+@users.route('/deny_registration/<int:user_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def denyRegistrationRoute(user_id):
+    result = denyRegistration(user_id)
+    if result['message'] == 'success':
+        return jsonify({'message': 'success'})
+    return jsonify({'message': 'error', 'error': result.get('error', 'Failed to deny registration')})
 
 @users.route('/change_username/<int:user_id>', methods=['PUT'])
 @login_required

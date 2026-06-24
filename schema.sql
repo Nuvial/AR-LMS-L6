@@ -59,6 +59,7 @@ CREATE TABLE Users (
     username TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     forgot_password BOOLEAN NOT NULL DEFAULT 0,
+    pending_confirmation BOOLEAN NOT NULL DEFAULT 0,
     FOREIGN KEY (fk_employee_id) REFERENCES Employees(pk_employee_id) ON DELETE CASCADE
 );
 

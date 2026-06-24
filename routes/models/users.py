@@ -24,7 +24,7 @@ def getUsers(user_id=None):
             LEFT JOIN Team t ON b.fk_team_id = t.pk_team_id
         """
         values = ()
-        conditions = []
+        conditions = ["a.pending_confirmation = 0"]
 
         if user_id:
             conditions.append("a.pk_user_id = ?")
@@ -122,6 +122,21 @@ def changePassword(id, password):
         return 'success'
     except Exception as e:
         raise e
+
+def getUnregisteredEmployees():
+    """Returns employees who have no login account (active or pending)."""
+    try:
+        db = get_db()
+        query = """
+            SELECT e.pk_employee_id, e.first_name, e.last_name
+            FROM Employees e
+            WHERE e.pk_employee_id NOT IN (SELECT fk_employee_id FROM Users)
+            ORDER BY e.pk_employee_id
+        """
+        return [dict(row) for row in db.execute(query).fetchall()]
+    except Exception as e:
+        raise Exception(f"An error occurred: {e}")
+
 
 def changeUsername(id, username):
     """
