@@ -167,7 +167,7 @@ def validate_create_team(managerId, employeeIds):
         db = get_db()
         placeholders = ','.join('?' * len(employeeIds))
         if db.execute(
-            f"SELECT e.pk_employee_id FROM Employees e"
+            f"SELECT e.pk_employee_id FROM Employees e"  # nosec B608 -- `placeholders` is only '?' chars; IDs are passed as parameterised integers, not interpolated into the SQL
             f" JOIN Roles r ON e.fk_role_id = r.pk_role_id"
             f" WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'",
             [int(eid) for eid in employeeIds]
@@ -257,7 +257,7 @@ def validate_update_team(teamId, managerId, employeeIds):
         db = get_db()
         placeholders = ','.join('?' * len(emp_id_list))
         if db.execute(
-            f"SELECT e.pk_employee_id FROM Employees e"
+            f"SELECT e.pk_employee_id FROM Employees e"  # nosec B608 -- `placeholders` is only '?' chars; IDs are in `emp_id_list` as integers, passed as parameterised values
             f" JOIN Roles r ON e.fk_role_id = r.pk_role_id"
             f" WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'",
             emp_id_list

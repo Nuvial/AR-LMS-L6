@@ -146,5 +146,3 @@ def inject_env_info():
     }
 
 ensure_db_exists()
-if __name__ == '__main__':
-    app.run(debug=True)

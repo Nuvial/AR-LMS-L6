@@ -133,11 +133,8 @@ def update_employee(employee_id, data):
         if not fields_to_update:
             raise ValueError('Data does not contain any valid fields to update.')
 
-        query = f"""
-            UPDATE Employees
-            SET {', '.join(fields_to_update)}
-            WHERE pk_employee_id = ?
-        """
+        set_clause = ', '.join(fields_to_update)
+        query = f"UPDATE Employees SET {set_clause} WHERE pk_employee_id = ?"  # nosec B608 -- set_clause contains only column names from the server-side valid_fields whitelist; user values are in the parameterised `values` list
         values.append(employee_id)
 
         db = get_db()

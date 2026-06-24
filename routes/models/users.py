@@ -25,7 +25,7 @@ def _check_hibp(password):
     Raises RuntimeError if the API is unreachable or returns an unexpected status,
     allowing the caller to decide whether to fail open or closed.
     """
-    sha1 = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+    sha1 = hashlib.sha1(password.encode('utf-8'), usedforsecurity=False).hexdigest().upper()
     prefix, suffix = sha1[:5], sha1[5:]
 
     req = urllib.request.Request(
@@ -33,7 +33,10 @@ def _check_hibp(password):
         headers={'User-Agent': 'employee-management-app'},
     )
     try:
-        with urllib.request.urlopen(req, timeout=_HIBP_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=_HIBP_TIMEOUT) as resp:  # nosec B310
+            # URL is always https://api.pwnedpasswords.com/range/<5-hex-chars>;
+            # the scheme is hardcoded and the path suffix is our own SHA-1
+            # output — no user input can introduce a file:/ or custom scheme.
             if resp.status != 200:
                 raise RuntimeError(f'HIBP returned HTTP {resp.status}')
             body = resp.read().decode('utf-8')
