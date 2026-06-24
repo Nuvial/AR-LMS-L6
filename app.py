@@ -117,12 +117,6 @@ def ensure_db_exists():
                     AND fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')
                 """)
                 db.commit()
-                try:
-                    db.execute("ALTER TABLE Users ADD COLUMN pending_confirmation BOOLEAN NOT NULL DEFAULT 0")
-                    db.commit()
-                    print("[MIGRATE] Added pending_confirmation column to Users.")
-                except Exception:
-                    pass
     else:
         print("[INIT] No database found. Initialising...")
         init_db()

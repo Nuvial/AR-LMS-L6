@@ -1,5 +1,89 @@
+import hashlib
+import os
+import urllib.request
+import urllib.error
+
 from flask_login import current_user
+from flask_bcrypt import Bcrypt as _Bcrypt
 from db import get_db
+
+_bcrypt = _Bcrypt()
+
+_HIBP_ENABLED = os.getenv('HIBP_ENABLED', 'true').strip().lower() not in ('false', '0', 'no')
+_HIBP_TIMEOUT = 3  # seconds
+
+
+def _check_hibp(password):
+    """
+    K-anonymity check against the HIBP Pwned Passwords API (OWASP ASVS V2.1.7).
+
+    Only the first 5 hex characters of the SHA-1 hash are sent to HIBP;
+    the remaining 35 characters never leave this process, so the plaintext
+    password is never exposed.
+
+    Returns the breach count for this password (0 = not found in any breach).
+    Raises RuntimeError if the API is unreachable or returns an unexpected status,
+    allowing the caller to decide whether to fail open or closed.
+    """
+    sha1 = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+    prefix, suffix = sha1[:5], sha1[5:]
+
+    req = urllib.request.Request(
+        f'https://api.pwnedpasswords.com/range/{prefix}',
+        headers={'User-Agent': 'employee-management-app'},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_HIBP_TIMEOUT) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f'HIBP returned HTTP {resp.status}')
+            body = resp.read().decode('utf-8')
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f'HIBP unreachable: {exc}')
+
+    for line in body.splitlines():
+        parts = line.split(':')
+        if len(parts) == 2 and parts[0] == suffix:
+            return int(parts[1])
+    return 0
+
+
+def validate_password(password, current_hash=None):
+    """
+    OWASP-aligned password validation (NIST SP 800-63B / OWASP ASVS V2.1).
+    Returns a list of error strings; an empty list means the password is valid.
+
+    HIBP failure policy: fail open if the API is unreachable the check is
+    skipped rather than blocking the user.
+    """
+    errors = []
+    if not password:
+        errors.append('Password is required.')
+        return errors
+    if len(password) < 8:
+        errors.append('Password must be at least 8 characters.')
+    if len(password) > 128:
+        errors.append('Password must not exceed 128 characters.')
+    if current_hash and not errors:
+        if _bcrypt.check_password_hash(current_hash, password):
+            errors.append('New password must be different from your current password.')
+    if not errors and _HIBP_ENABLED:
+        try:
+            breach_count = _check_hibp(password)
+            if breach_count > 0:
+                errors.append(
+                    f'This password has appeared in {breach_count:,} known data breach(es) '
+                    f'and cannot be used. Please choose a different password.'
+                )
+        except RuntimeError:
+            pass  # Fail open: HIBP unavailable; allow the password through
+    return errors
+
+
+def getUserPasswordHash(user_id):
+    """Returns the stored password hash for a user, or None if not found."""
+    db = get_db()
+    row = db.execute("SELECT password FROM Users WHERE pk_user_id = ?", (user_id,)).fetchone()
+    return row['password'] if row else None
 
 def getUsers(user_id=None):
     """
@@ -98,22 +182,24 @@ def deleteUser(user_id=None):
     except Exception as e:
         return {'message': 'error', 'error': str(e)}
 
-def changePassword(id, password):
+def changePassword(id, password, reset_required=False):
     """
-    Changes a users password. The route should be protected by an admin-only login.
+    Changes a users password.
     Args:
         id (int): The User ID of the password to change.
         password (str): A hashed password to change to.
+        reset_required (bool): If True, forces the user to change password on next login.
     """
     try:
         query = """
             UPDATE Users
-            SET 
+            SET
                 password = ?,
-                forgot_password = 0
+                forgot_password = 0,
+                password_reset_required = ?
             WHERE pk_user_id = ?
         """
-        values = (password, id)
+        values = (password, 1 if reset_required else 0, id)
 
         db = get_db()
         db.execute(query, values)

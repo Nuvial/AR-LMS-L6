@@ -46,8 +46,14 @@ class LoginForm(FlaskForm):
 class RegisterForm(FlaskForm):
     employee_id = IntegerField('Employee ID:', validators=[InputRequired()])
     username = StringField('Username:', validators=[InputRequired(), Length(min=3, max=25)])
-    password = PasswordField('Password:', validators=[InputRequired(), Length(min=6)])
+    password = PasswordField('Password:', validators=[InputRequired(), Length(min=8, max=128)])
     submit = SubmitField('Register')
+
+
+class ForceChangePasswordForm(FlaskForm):
+    password = PasswordField('New Password:', validators=[InputRequired(), Length(min=8, max=128)])
+    confirm_password = PasswordField('Confirm New Password:', validators=[InputRequired()])
+    submit = SubmitField('Change Password')
 
 
 # ---------------------------------------------------------------------------
@@ -78,13 +84,19 @@ def usernameTaken(username):
     return db.execute(query, (username,)).fetchone() is not None
 
 
-def registerUser(data, pending=False):
+def registerUser(data, pending=False, password_reset_required=False):
     try:
         query = """
-            INSERT INTO Users (fk_employee_id, username, password, pending_confirmation)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO Users (fk_employee_id, username, password, pending_confirmation, password_reset_required)
+            VALUES (?, ?, ?, ?, ?)
         """
-        values = (data['employee_id'], data['username'], data['hashed_password'], 1 if pending else 0)
+        values = (
+            data['employee_id'],
+            data['username'],
+            data['hashed_password'],
+            1 if pending else 0,
+            1 if password_reset_required else 0,
+        )
 
         db = get_db()
         cursor = db.execute(query, values)
@@ -210,3 +222,17 @@ def unForgotPassword(id):
         return 'success'
     except Exception as e:
         raise e
+
+
+def getUserDataById(user_id):
+    db = get_db()
+    query = """
+        SELECT u.*, r.name AS role
+        FROM Users u
+        JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+        JOIN Roles r ON e.fk_role_id = r.pk_role_id
+        WHERE u.pk_user_id = ?
+    """
+    return db.execute(query, (user_id,)).fetchone()
+
+

@@ -27,7 +27,7 @@
             {{ register_form.password.label(class="form-label") }}
             {{ register_form.password(class="form-control form-validate") }}
             <div class="invalid-feedback">
-                Password has to be minimum 6 characters long.
+                Password must be 8–128 characters long.
             </div>
         </div>
         <div class="mb-3">
@@ -79,37 +79,11 @@
         return true;
     }
 
-    function validatePassword(){
-        const val = password_field.val();
-        if (!val) return false;
-
-        if (val.length < 6) {
-            password_field.addClass('is-invalid');
-            return false;
-        }
-        password_field.removeClass('is-invalid');
-        return true;
-    }
-
-    function validateConfirmPassword(){
-        const pass = password_field.val();
-        const confirm = confirm_password_field.val();
-
-        if (!confirm) return false;
-        
-        if (pass !== confirm) {
-            confirm_password_field.addClass('is-invalid');
-            return false;
-        }
-        confirm_password_field.removeClass('is-invalid');
-        return true;
-    }
-
     function validateForm(){
         const valid_employee_id = validateEmployeeID();
         const valid_username = validateUsername();
-        const valid_password = validatePassword();
-        const valid_confirm_password = validateConfirmPassword();
+        const valid_password = validatePasswordInput(password_field);
+        const valid_confirm_password = validateConfirmInput(password_field, confirm_password_field);
 
         if (valid_employee_id && valid_username && valid_password && valid_confirm_password){
             submit_btn.removeClass('disabled');
@@ -123,7 +97,7 @@
     username_field.on('input', validateForm);
     password_field.on('input', function(){
         validateForm();
-        validateConfirmPassword(); //Re-validate confirm password if password changes
+        if (confirm_password_field.val()) validateConfirmInput(password_field, confirm_password_field);
     });
     confirm_password_field.on('input', validateForm);
 

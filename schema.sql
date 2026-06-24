@@ -52,7 +52,7 @@ CREATE TABLE EmployeeLeave (
     FOREIGN KEY (fk_employee_id) REFERENCES Employees(pk_employee_id) ON DELETE CASCADE
 );
 
--- Users Table (admin flag removed; role lives in Employees.fk_role_id)
+-- Users Table
 CREATE TABLE Users (
     pk_user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     fk_employee_id INTEGER NOT NULL UNIQUE,
@@ -60,6 +60,7 @@ CREATE TABLE Users (
     password TEXT NOT NULL,
     forgot_password BOOLEAN NOT NULL DEFAULT 0,
     pending_confirmation BOOLEAN NOT NULL DEFAULT 0,
+    password_reset_required BOOLEAN NOT NULL DEFAULT 0,
     FOREIGN KEY (fk_employee_id) REFERENCES Employees(pk_employee_id) ON DELETE CASCADE
 );
 
@@ -70,7 +71,7 @@ INSERT INTO Roles (name, description) VALUES
 ('manager',  'Team manager with elevated permissions for their assigned team'),
 ('employee', 'Standard employee with access to their own records only');
 
--- Seed Employees  (fk_role_id: 1=admin, 2=manager, 3=employee)
+-- Seed Employees
 INSERT INTO Employees (first_name, last_name, employee_position, default_leave_balance, fk_role_id)
 VALUES
 ('Admin',    'Admin',      'System Administrator', 30.0,  (SELECT pk_role_id FROM Roles WHERE name = 'admin')),

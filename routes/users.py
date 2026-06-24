@@ -4,7 +4,7 @@ from flask import request, jsonify, Blueprint, render_template, redirect, url_fo
 from flask_login import login_required, current_user
 from flask_bcrypt import Bcrypt
 
-from .models.users import getUsers, deleteUser, changePassword, changeUsername, isUserInManagerTeam, getUnregisteredEmployees
+from .models.users import getUsers, deleteUser, changePassword, changeUsername, isUserInManagerTeam, getUnregisteredEmployees, validate_password, getUserPasswordHash
 from .models.auth import isEmployeeIdRegistered, usernameTaken, registerUser, upgradeUser, demoteUser, getPendingUsers, confirmRegistration, denyRegistration
 from .models.employees import get_employees
 from .auth import admin_required, admin_or_manager_required
@@ -20,12 +20,6 @@ def _validate_username(username):
         return 'Username must be alphanumeric.'
     if not (3 <= len(str(username)) <= 25):
         return 'Username must be between 3 and 25 characters.'
-    return None
-
-def _validate_password(password):
-    """Returns an error string or None if valid."""
-    if not password or len(str(password)) < 6:
-        return 'Password must be at least 6 characters.'
     return None
 
 
@@ -94,9 +88,9 @@ def addUser():
     if username_err:
         return jsonify({'message': 'error', 'error': username_err})
 
-    password_err = _validate_password(password)
-    if password_err:
-        return jsonify({'message': 'error', 'error': password_err})
+    password_errs = validate_password(str(password))
+    if password_errs:
+        return jsonify({'message': 'error', 'error': password_errs[0]})
 
     if not get_employees(int(employee_id)):
         return jsonify({'message': 'error', 'error': 'Employee ID does not exist'})
@@ -112,7 +106,7 @@ def addUser():
         'employee_id': int(employee_id),
         'username': str(username),
         'hashed_password': hashed_password
-    })
+    }, password_reset_required=True)
 
     if register['message'] != 'success':
         return jsonify({'message': 'error', 'error': 'Failed to create account'})
@@ -181,12 +175,14 @@ def changePasswordRoute(user_id):
         if not data or not data.get('password'):
             return jsonify({'message': 'error', 'error': 'Missing password'})
 
-        password_err = _validate_password(data['password'])
-        if password_err:
-            return jsonify({'message': 'error', 'error': password_err})
+        current_hash = getUserPasswordHash(user_id)
+        password_errs = validate_password(data['password'], current_hash=current_hash)
+        if password_errs:
+            return jsonify({'message': 'error', 'error': password_errs[0]})
 
         hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-        change = changePassword(user_id, hashed_password)
+        reset_required = user_id != current_user.id
+        change = changePassword(user_id, hashed_password, reset_required=reset_required)
         if change == 'success':
             return jsonify({'message': 'success'})
         else:
