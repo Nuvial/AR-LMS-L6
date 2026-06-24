@@ -39,6 +39,7 @@ $(document).ready(function(){
 
 function softRefresh(){
     $('.modal.show').modal('hide');
+    $('#tempPassword').val('');
     setEditing(false);
     loadUsers();
     loadPendingRegistrations();
@@ -160,11 +161,12 @@ function createAccount(data){
         },
         success: function(resp){
             if (resp.message === 'success'){
-                softRefresh()
-                flashMessage('User account created successfully.', 'success', 3000)
+                softRefresh();
+                flashMessage('User account created successfully.', 'success', 3000);
             } else {
-                softRefresh()
-                flashMessage(resp.error || 'Error creating user account. Please try again', 'danger', 6000)
+                $('.modal.show').modal('hide');
+                $('#tempPassword').val('');
+                flashMessage(resp.error || 'Error creating user account. Please try again', 'danger', 6000);
             }
         },
         complete: function(){
@@ -268,8 +270,9 @@ function changePassword(id, password){
                 softRefresh()
                 flashMessage('User password changed successfully.', 'success', 3000)
             } else {
-                softRefresh()
-                flashMessage(resp.error || 'Error changing password on user account. Please try again', 'danger', 6000)
+                $('.modal.show').modal('hide');
+                $('#tempPassword').val('');
+                flashMessage(resp.error || 'Error changing password on user account. Please try again', 'danger', 6000);
             }
         },
         complete: function(){

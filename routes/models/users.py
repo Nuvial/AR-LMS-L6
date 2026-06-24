@@ -65,7 +65,7 @@ def validate_password(password, current_hash=None):
         errors.append('Password must not exceed 128 characters.')
     if current_hash and not errors:
         if _bcrypt.check_password_hash(current_hash, password):
-            errors.append('New password must be different from your current password.')
+            errors.append('New password must be different from the current password.')
     if not errors and _HIBP_ENABLED:
         try:
             breach_count = _check_hibp(password)
