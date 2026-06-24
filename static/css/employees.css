@@ -16,18 +16,31 @@ html, body {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    gap: 1rem;
 }
-.card {
+.main-flex-container .card {
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
-.card.mb-3 {
-    flex: 1 1 40% !important; 
+.main-flex-container .card.overview-card {
+    flex: 0 1 auto !important; 
+    min-height: 0;
+    max-height: 50%;
 }
-.card.calendar-card {
-    flex: 1 1 60% !important; 
+.main-flex-container .card.overview-card #employee-form {
+    flex: 0 1 auto;
+    min-height: unset;
+}
+.main-flex-container .card.overview-card #employee-stats-body {
+    flex: 0 1 auto;
+    min-height: unset;
+    overflow-y: auto;
+}
+.main-flex-container .card.calendar-card {
+    flex: 1 1; 
+    min-height: 0;
 }
 
 .card-header {

@@ -4,11 +4,29 @@
     height: calc(100vh - 64px);
 }
 
-div.leave-request .employee-records{
-    max-height: 15em;
-    overflow-y: auto;
+.main-content-wrapper .card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.main-content-wrapper .card.leave-request {
+    flex: 0 0 auto;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+}
+.main-content-wrapper .card.calendar {
+    flex: 1 1 0;
+    min-height: 0;
+}
+.main-content-wrapper .card-body.employee-records {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: auto;
+    overflow-y: visible;
     position: relative;
 }
+
 #employee-search {
     position: sticky;
     top: 0;
