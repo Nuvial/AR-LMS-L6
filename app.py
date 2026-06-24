@@ -87,42 +87,19 @@ def init_db():
             'employee_id': 1,
             'username': 'admin',
             'hashed_password': bcrypt.generate_password_hash('admin').decode('utf-8')
-        })
+        },
+        False,
+        True
+        )
         registerUser({
             'employee_id': 2,
             'username': 'user',
             'hashed_password': bcrypt.generate_password_hash('user').decode('utf-8')
-        })
+        },
+        False,
+        True)
         upgradeUser(1)
         print("[INIT] Database initialised. Admin & User account created.")
-
-def _migrate_db(db):
-    """Apply incremental schema migrations to an existing database."""
-    emp_cols = [row[1] for row in db.execute("PRAGMA table_info(Employees)").fetchall()]
-
-    # Migration: contracted hours (introduced with hours-based leave)
-    if 'contracted_daily_hours' not in emp_cols:
-        db.execute("ALTER TABLE Employees ADD COLUMN contracted_daily_hours REAL NOT NULL DEFAULT 8")
-        db.execute("ALTER TABLE Employees ADD COLUMN contracted_weekly_hours REAL NOT NULL DEFAULT 40")
-        # Convert existing leave balances from days to hours (assume 8h working day)
-        db.execute("UPDATE Employees SET default_leave_balance = default_leave_balance * 8")
-        db.execute("UPDATE Employees SET default_sick_leave_balance = default_sick_leave_balance * 8")
-        print("[MIGRATE] Added contracted_daily_hours and contracted_weekly_hours; converted leave balances to hours.")
-
-    leave_cols = [row[1] for row in db.execute("PRAGMA table_info(EmployeeLeave)").fetchall()]
-
-    # Migration: hours_requested field on leave records
-    if 'hours_requested' not in leave_cols:
-        db.execute("ALTER TABLE EmployeeLeave ADD COLUMN hours_requested REAL NOT NULL DEFAULT 0")
-        # Back-fill existing records: approximate hours from calendar days * 8
-        db.execute("""
-            UPDATE EmployeeLeave
-            SET hours_requested = (julianday(end_date) - julianday(start_date) + 1) * 8
-            WHERE hours_requested = 0
-        """)
-        print("[MIGRATE] Added hours_requested to EmployeeLeave and back-filled existing records.")
-
-    db.commit()
 
 def ensure_db_exists():
     with app.app_context():
@@ -141,7 +118,6 @@ def ensure_db_exists():
                     WHERE pk_employee_id IN (SELECT fk_manager_id FROM Team WHERE fk_manager_id IS NOT NULL)
                     AND fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')
                 """)
-                _migrate_db(db)
                 db.commit()
     else:
         print("[INIT] No database found. Initialising...")
