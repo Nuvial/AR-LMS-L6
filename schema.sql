@@ -20,31 +20,22 @@ CREATE TABLE Employees (
     fk_role_id INTEGER NOT NULL,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
-    default_leave_balance REAL NOT NULL DEFAULT 25,
-    default_sick_leave_balance REAL NOT NULL DEFAULT 5,
-    employee_position TEXT NOT NULL,
+    default_leave_balance REAL NOT NULL DEFAULT 200,
+    default_sick_leave_balance REAL NOT NULL DEFAULT 40,
+    contracted_daily_hours REAL NOT NULL DEFAULT 8,
+    contracted_weekly_hours REAL NOT NULL DEFAULT 40,
     FOREIGN KEY (fk_team_id) REFERENCES Team(pk_team_id) ON DELETE SET NULL,
     FOREIGN KEY (fk_role_id) REFERENCES Roles(pk_role_id)
-);
-
--- Employee Stats Table
-CREATE TABLE EmployeeStats (
-    pk_stat_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    fk_employee_id INTEGER NOT NULL,
-    attendance REAL NOT NULL,
-    productivity REAL NOT NULL,
-    performance REAL NOT NULL,
-    date_recorded TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (fk_employee_id) REFERENCES Employees(pk_employee_id) ON DELETE CASCADE
 );
 
 -- Employee Leave Table
 CREATE TABLE EmployeeLeave (
     pk_leave_id INTEGER PRIMARY KEY AUTOINCREMENT,
     fk_employee_id INTEGER NOT NULL,
-    leave_type TEXT NOT NULL,
+    leave_type TEXT NOT NULL CHECK(leave_type IN ('Annual Leave', 'Sick Leave', 'Time off in Lieu')),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
+    hours_requested REAL NOT NULL DEFAULT 0,
     date_requested TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status TEXT NOT NULL,
     comment_employee TEXT,
@@ -71,46 +62,31 @@ INSERT INTO Roles (name, description) VALUES
 ('manager',  'Team manager with elevated permissions for their assigned team'),
 ('employee', 'Standard employee with access to their own records only');
 
--- Seed Employees
-INSERT INTO Employees (first_name, last_name, employee_position, default_leave_balance, fk_role_id)
+-- Seed Employees (leave balances now in hours: days * 8h/day)
+INSERT INTO Employees (first_name, last_name, default_leave_balance, default_sick_leave_balance, contracted_daily_hours, contracted_weekly_hours, fk_role_id)
 VALUES
-('Admin',    'Admin',      'System Administrator', 30.0,  (SELECT pk_role_id FROM Roles WHERE name = 'admin')),
-('Ryleigh',  'Frost',      'Software Engineer',    20.0,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Claire',   'Bridges',    'Software Engineer',    14.25, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Kenyon',   'Buckley',    'UX Designer',          16.0,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Memphis',  'Grant',      'QA Engineer',          25.0,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('James',    'Petersen',   'Software Engineer',    30.0,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Ahmad',    'Gilbert',    'DevOps Engineer',      20.5,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Krystal',  'Rosario',    'Product Manager',      22.5,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Regan',    'Wiley',      'Software Engineer',    22.0,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Tatum',    'Fitzgerald', 'Data Analyst',         25.0,  (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
-('Kale',     'Herman',     'Software Engineer',     9.75, (SELECT pk_role_id FROM Roles WHERE name = 'employee'));
+('Admin',    'Admin',      240,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'admin')),
+('Ryleigh',  'Frost',      160,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Claire',   'Bridges',    114,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Kenyon',   'Buckley',    128,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Memphis',  'Grant',      200,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('James',    'Petersen',   240,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Ahmad',    'Gilbert',    164,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Krystal',  'Rosario',    180,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Regan',    'Wiley',      176,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Tatum',    'Fitzgerald', 200,   40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee')),
+('Kale',     'Herman',     78,    40,  8, 40, (SELECT pk_role_id FROM Roles WHERE name = 'employee'));
 
--- Seed EmployeeStats
-INSERT INTO EmployeeStats (fk_employee_id, attendance, productivity, performance)
+-- Seed EmployeeLeave (hours_requested = calendar days * 8h, capped per week at 40h)
+INSERT INTO EmployeeLeave (fk_employee_id, leave_type, start_date, end_date, hours_requested, status)
 VALUES
-(1,  90.5,  75.2, 8.5),
-(2,  89.0,  65.2, 8.5),
-(3,  98.5,  80.0, 6.5),
-(4,  100.0, 75.9, 6.6),
-(5,  78.0,  82.0, 7.8),
-(6,  87.0,  75.0, 5.7),
-(7,  98.25, 42.5, 8.9),
-(8,  90.5,  55.0, 5.7),
-(9,  90.5,  84.25, 9.1),
-(10, 99.0,  71.0, 8.7),
-(11, 87.6,  75.4, 6.7);
-
--- Seed EmployeeLeave
-INSERT INTO EmployeeLeave (fk_employee_id, leave_type, start_date, end_date, status)
-VALUES
-(2,  'Annual Leave', '2025-06-01', '2025-06-05', 'Approved'),
-(6,  'Annual Leave', '2025-07-05', '2025-07-10', 'Rejected'),
-(6,  'Annual Leave', '2025-07-05', '2025-07-10', 'Pending'),
-(6,  'Annual Leave', '2025-08-01', '2025-08-08', 'Approved'),
-(10, 'Annual Leave', '2025-07-15', '2025-07-20', 'Pending'),
-(3,  'Sick Leave',   '2025-06-10', '2025-06-12', 'Approved'),
-(4,  'Sick Leave',   '2025-07-12', '2025-07-14', 'Pending'),
-(7,  'Sick Leave',   '2025-08-10', '2025-08-12', 'Approved'),
-(8,  'Sick Leave',   '2025-07-18', '2025-07-20', 'Rejected'),
-(9,  'Sick Leave',   '2025-07-18', '2025-07-20', 'Pending');
+(2,  'Annual Leave', '2025-06-01', '2025-06-05', 40,  'Approved'),
+(6,  'Annual Leave', '2025-07-05', '2025-07-10', 40,  'Rejected'),
+(6,  'Annual Leave', '2025-07-05', '2025-07-10', 40,  'Pending'),
+(6,  'Annual Leave', '2025-08-01', '2025-08-08', 64,  'Approved'),
+(10, 'Annual Leave', '2025-07-15', '2025-07-20', 40,  'Pending'),
+(3,  'Sick Leave',   '2025-06-10', '2025-06-12', 24,  'Approved'),
+(4,  'Sick Leave',   '2025-07-12', '2025-07-14', 24,  'Pending'),
+(7,  'Sick Leave',   '2025-08-10', '2025-08-12', 24,  'Approved'),
+(8,  'Sick Leave',   '2025-07-18', '2025-07-20', 24,  'Rejected'),
+(9,  'Sick Leave',   '2025-07-18', '2025-07-20', 24,  'Pending');

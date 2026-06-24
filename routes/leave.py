@@ -3,21 +3,22 @@ from datetime import datetime
 from flask import request, jsonify, Blueprint, render_template
 from flask_login import login_required, current_user
 
-from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest, isLeaveInManagerTeam, getLeaveOwnerRole
+from .models.leave import getLeave, getRemainingLeave, getRequestedLeave, approveLeave, denyLeave, requestLeave, deleteRequest, isLeaveInManagerTeam, getLeaveOwnerRole, hasOverlappingLeave
 from .auth import admin_required, admin_or_manager_required
 
 leave = Blueprint('leave', __name__)
 
-_VALID_LEAVE_TYPES = {'Annual Leave', 'Sick Leave'}
+_VALID_LEAVE_TYPES = {'Annual Leave', 'Sick Leave', 'Time off in Lieu'}
 
 def _validate_leave_request(data):
     """Returns an error string or None if valid."""
     leave_type = data.get('leave_type')
     start_date = data.get('start_date')
     end_date = data.get('end_date')
+    hours_requested = data.get('hours_requested')
 
-    if not leave_type or not start_date or not end_date:
-        return 'Missing required fields: leave_type, start_date, end_date'
+    if not leave_type or not start_date or not end_date or hours_requested is None:
+        return 'Missing required fields: leave_type, start_date, end_date, hours_requested'
 
     if leave_type not in _VALID_LEAVE_TYPES:
         return f"Invalid leave type. Must be one of: {', '.join(sorted(_VALID_LEAVE_TYPES))}"
@@ -34,6 +35,15 @@ def _validate_leave_request(data):
 
     if start > end:
         return 'start_date must not be after end_date'
+
+    try:
+        hrs = float(hours_requested)
+        if hrs <= 0:
+            return 'Hours requested must be greater than 0'
+        if hrs > 10000:
+            return 'Hours requested is unreasonably large'
+    except (ValueError, TypeError):
+        return 'hours_requested must be a number'
 
     return None
 
@@ -120,7 +130,7 @@ def deleteLeaveRoute(leave_id):
         else:
             return jsonify({'message': 'error', 'error': 'Could not delete leave'})
 
-@leave.route('/request_leave/', methods=['POST'])
+@leave.route('/request_leave', methods=['POST'])
 @login_required
 def requestLeaveRoute():
     if request.method == 'POST':
@@ -132,11 +142,15 @@ def requestLeaveRoute():
         if err:
             return jsonify({'message': 'error', 'error': err})
 
+        if hasOverlappingLeave(current_user.employee_id, data['start_date'], data['end_date']):
+            return jsonify({'message': 'error', 'error': 'You already have leave booked for one or more days in this period.'})
+
         leave_request = requestLeave(
             current_user.employee_id,
             data['leave_type'],
             data['start_date'],
             data['end_date'],
+            float(data['hours_requested']),
             data.get('employee_comments', '')
         )
         if leave_request == 'success':

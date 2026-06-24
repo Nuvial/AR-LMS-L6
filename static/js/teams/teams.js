@@ -730,7 +730,7 @@ class Team {
                         <td class="employee-id">${employee.pk_employee_id}</td>
                         <td class="employee-first-name">${employee.first_name}</td>
                         <td class="employee-last-name">${employee.last_name}</td>
-                        <td class="employee-position">${employee.employee_position}</td>
+                        <td class="employee-position">${formatRole(employee.role)}</td>
                     </tr>
                 `;
             }

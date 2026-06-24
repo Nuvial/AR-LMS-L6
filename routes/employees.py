@@ -9,7 +9,6 @@ from .auth import admin_required
 employees = Blueprint('employees', __name__)
 
 _NAME_RE = re.compile(r"^[a-zA-Z\- ]+$")
-_POSITION_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9 ]*$")
 
 def _validate_employee_fields(data, require_all=True):
     """
@@ -18,12 +17,14 @@ def _validate_employee_fields(data, require_all=True):
     """
     first_name = data.get('first_name')
     last_name = data.get('last_name')
-    position = data.get('employee_position')
     leave_bal = data.get('default_leave_balance')
     sick_bal = data.get('default_sick_leave_balance')
+    daily_hours = data.get('contracted_daily_hours')
+    weekly_hours = data.get('contracted_weekly_hours')
 
     if require_all:
-        if not first_name or not last_name or not position or leave_bal is None or sick_bal is None:
+        if (not first_name or not last_name or leave_bal is None or sick_bal is None
+                or daily_hours is None or weekly_hours is None):
             return 'Missing required fields'
 
     if first_name is not None:
@@ -34,26 +35,37 @@ def _validate_employee_fields(data, require_all=True):
         if not _NAME_RE.match(str(last_name).strip()) or not (1 <= len(str(last_name).strip()) <= 32):
             return 'Last name must be 1-32 letters, spaces or hyphens only'
 
-    if position is not None:
-        pos = str(position).strip()
-        if not _POSITION_RE.match(pos) or not (1 <= len(pos) <= 32):
-            return 'Position must be 1-32 alphanumeric characters (spaces allowed)'
-
     if leave_bal is not None:
         try:
             val = float(leave_bal)
-            if not (0 <= val <= 365):
-                return 'Default leave balance must be between 0 and 365'
+            if not (0 <= val <= 5000):
+                return 'Default leave balance must be between 0 and 5000 hours'
         except (ValueError, TypeError):
             return 'Default leave balance must be a number'
 
     if sick_bal is not None:
         try:
             val = float(sick_bal)
-            if not (0 <= val <= 365):
-                return 'Default sick leave balance must be between 0 and 365'
+            if not (0 <= val <= 5000):
+                return 'Default sick leave balance must be between 0 and 5000 hours'
         except (ValueError, TypeError):
             return 'Default sick leave balance must be a number'
+
+    if daily_hours is not None:
+        try:
+            val = float(daily_hours)
+            if not (0 < val <= 24):
+                return 'Contracted daily hours must be between 0 and 24'
+        except (ValueError, TypeError):
+            return 'Contracted daily hours must be a number'
+
+    if weekly_hours is not None:
+        try:
+            val = float(weekly_hours)
+            if not (0 < val <= 168):
+                return 'Contracted weekly hours must be between 0 and 168'
+        except (ValueError, TypeError):
+            return 'Contracted weekly hours must be a number'
 
     return None
 

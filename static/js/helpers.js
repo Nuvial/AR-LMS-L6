@@ -1,4 +1,18 @@
 /**
+ * Maps a role name from the database to a human-readable display label.
+ * @param {string} role - Raw role name ('admin', 'manager', 'employee').
+ * @returns {string} Display label.
+ */
+function formatRole(role) {
+    const labels = {
+        'admin': 'Administrator',
+        'manager': 'Team Manager',
+        'employee': 'Employee'
+    };
+    return labels[role] || role;
+}
+
+/**
  * Show spinner loader with whole screen backdrop.
  */
 function showLoader(){
@@ -187,8 +201,8 @@ function createInputFields(selector, size='sm', copy_classes=false, required=fal
         const classes = copy_classes 
                         ? $(field).attr('class')
                         : '';
-        // Name and position fields are treated as a single value (no unit suffix)
-        const isSingleValue = classes.includes('name') || classes.includes('employee-position');
+        // Name fields are treated as a single value (no unit suffix)
+        const isSingleValue = classes.includes('name');
         const [value, unit] = !isSingleValue
                         ? $(field).text().trim().split(' ')
                         : [$(field).text().trim(), ''];

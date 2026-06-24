@@ -20,6 +20,7 @@
                 <div class="actions-btns">
                     <button type="button" class="btn btn-secondary btn-lg w-100" id="annualLeaveType" data-bs-dismiss="modal">Annual Leave</button>
                     <button type="button" class="btn btn-outline-secondary btn-lg w-100" id="sickLeaveType" data-bs-dismiss="modal">Sick Leave</button>
+                    <button type="button" class="btn btn-outline-secondary btn-lg w-100" id="toilLeaveType" data-bs-dismiss="modal">Time off in Lieu</button>
                 </div>
             </div>
             <div class="modal-footer d-flex justify-content-between" style="border-top: 0px;">
@@ -98,7 +99,7 @@
                 </div>
                 <div class="row date-info mb-2">
                     <div class="col-12">
-                        <div class="label">Days:</div>
+                        <div class="label">Hours:</div>
                         <div class="value days-difference"></div>
                     </div>
                 </div>
@@ -106,22 +107,22 @@
                 <div class="date-info d-flex justify-content-around">
                     <div class="defaults d-flex">
                         <div>
-                            <div class="label">Default Leave (Days):</div>
+                            <div class="label">Default Leave (Hours):</div>
                             <div class="value default-leave"></div>
                         </div>
                         <div>
-                            <div class="label">Default Sick Leave (Days):</div>
+                            <div class="label">Default Sick Leave (Hours):</div>
                             <div class="value default-sick-leave"></div>
                         </div>
                     </div>
                     <div class="vr"></div>
                     <div class="taken d-flex">
                         <div>
-                            <div class="label">Leave Taken (Days):</div>
+                            <div class="label">Leave Taken (Hours):</div>
                             <div class="value leave-taken"></div>
                         </div>
                         <div>
-                            <div class="label">Sick Leave Taken (Days):</div>
+                            <div class="label">Sick Leave Taken (Hours):</div>
                             <div class="value sick-leave-taken"></div>
                         </div>
                     </div>
@@ -197,7 +198,10 @@
         </div>
         <div class="card-body calendar-container idle-calendar">
             <div id="calendar"></div>
-            <div id="tableView" style="display: none;"></div>
+            <div id="tableView" style="display: none;">
+                    <p id="tableView-empty" class="text-muted text-center mt-3" style="display: none;">No leave records to display.</p>
+                    <div id="tableView-tables"></div>
+                </div>
         </div>
     </div>
 </div>

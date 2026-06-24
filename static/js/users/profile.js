@@ -29,7 +29,7 @@ async function loadProfile() {
                 // Update profile object
                 profile.profile.firstName = employee.first_name;
                 profile.profile.lastName = employee.last_name;
-                profile.profile.position = employee.employee_position;
+                profile.profile.position = formatRole(employee.role);
 
                 if (employee.fk_team_id !== null) {
                     profile.profile.lineManager = `${employee.manager_first_name} ${employee.manager_last_name}`;

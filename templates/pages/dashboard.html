@@ -27,18 +27,18 @@
 
                 {% if current_user.admin %}
                 <p class="card-text">
-                    View and manage all employee records including personal details, performance statistics, and leave balances.
+                    View and manage all employee records including personal details, contracted hours, and leave balances.
                 </p>
                 <p>
                     As an admin you can also add, edit, or delete employee records directly from this page.
                 </p>
                 {% elif current_user.is_manager %}
                 <p class="card-text">
-                    View all employee records in your team as read-only including personal details, performance statistics, and leave balances.
+                    View all employee records in your team as read-only including personal details, contracted hours, and leave balances.
                 </p>
                 {% else %}
                 <p class="card-text">
-                    View all your personal employee record details including performance statistics, leave balances, and more.
+                    View all your personal employee record details including contracted hours, leave balances, and more.
                 </p>
                 {% endif %}
             </div>

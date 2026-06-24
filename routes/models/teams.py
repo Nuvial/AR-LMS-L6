@@ -48,21 +48,21 @@ def getEmployees(teamId=None):
         # Create base query
         query = """
             SELECT
-                pk_employee_id,
-                first_name,
-                last_name,
-                employee_position
-            FROM Employees
+                e.pk_employee_id,
+                e.first_name,
+                e.last_name,
+                r.name AS role
+            FROM Employees e
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
         """
         values = ()
 
         if (teamId):
-            # Add condition to base query if id is provided
-            query += " WHERE fk_team_id = ?"
+            query += " WHERE e.fk_team_id = ?"
             values = (teamId,)
         else:
-            query += """ 
-                WHERE fk_team_id IS NULL AND fk_role_id = 3
+            query += """
+                WHERE e.fk_team_id IS NULL AND r.name = 'employee'
             """
         
         # Execute the query
@@ -87,7 +87,7 @@ def getPossibleManagers():
                 e.pk_employee_id,
                 e.first_name,
                 e.last_name,
-                e.employee_position
+                r.name AS role
             FROM Employees e
             JOIN Roles r ON e.fk_role_id = r.pk_role_id
             WHERE e.pk_employee_id NOT IN (
@@ -118,8 +118,9 @@ def getEmployeeManager(employeeId):
                 m.pk_employee_id,
                 m.first_name,
                 m.last_name,
-                m.employee_position
+                r.name AS role
             FROM Employees m
+            JOIN Roles r ON m.fk_role_id = r.pk_role_id
             JOIN Team t on m.pk_employee_id = t.fk_manager_id
             JOIN Employees e on e.fk_team_id = t.pk_team_id
             WHERE e.pk_employee_id = ?

@@ -24,7 +24,6 @@ def getLeave(employee_id=None):
             values += (employee_id,)
 
         if not current_user.admin and employee_id != current_user.employee_id:
-            # Managers see their team; employees see only themselves
             conditions.append("(t.fk_manager_id = ? OR el.fk_employee_id = ?)")
             values += (current_user.employee_id, current_user.employee_id)
 
@@ -40,7 +39,7 @@ def getLeave(employee_id=None):
 
 def getRemainingLeave(employee_id=None):
     """
-    Get the remaining sick and annual leave for an employee, scoped by the caller's role.
+    Get the remaining sick and annual leave (in hours) for an employee, scoped by the caller's role.
     """
     try:
         query = """
@@ -48,7 +47,7 @@ def getRemainingLeave(employee_id=None):
                 e.pk_employee_id as fk_employee_id,
                 e.default_leave_balance -
                     IFNULL((
-                        SELECT SUM(julianday(end_date) - julianday(start_date) + 1)
+                        SELECT SUM(hours_requested)
                         FROM EmployeeLeave
                         WHERE fk_employee_id = e.pk_employee_id
                         AND leave_type = 'Annual Leave'
@@ -57,11 +56,11 @@ def getRemainingLeave(employee_id=None):
                     ), 0) AS leave_remaining,
                 e.default_sick_leave_balance -
                     IFNULL((
-                        SELECT SUM(julianday(end_date) - julianday(start_date) + 1)
+                        SELECT SUM(hours_requested)
                         FROM EmployeeLeave
                         WHERE fk_employee_id = e.pk_employee_id
                         AND leave_type = 'Sick Leave'
-                        AND status = 'Approved'
+                        AND (status = 'Approved' OR status = 'Pending')
                         AND strftime('%Y', start_date) = strftime('%Y', 'now')
                     ), 0) AS sick_leave_remaining
             FROM Employees e
@@ -194,14 +193,37 @@ def denyLeave(id, comment=None):
         raise Exception(f"An error occurred: {e}")
 
 
-def requestLeave(fk_employee_id, leave_type, start_date, end_date, comment_employee):
+def hasOverlappingLeave(employee_id, start_date, end_date, exclude_leave_id=None):
+    """
+    Returns True if the employee already has a Pending or Approved leave record
+    whose date range overlaps [start_date, end_date].
+    """
     try:
         query = """
-            INSERT INTO EmployeeLeave(fk_employee_id, leave_type, start_date, end_date, status, comment_employee)
-            VALUES (?, ?, ?, ?, 'Pending', ?)
+            SELECT pk_leave_id FROM EmployeeLeave
+            WHERE fk_employee_id = ?
+            AND status IN ('Pending', 'Approved')
+            AND date(start_date) <= date(?)
+            AND date(end_date) >= date(?)
+        """
+        values = [employee_id, end_date, start_date]
+        if exclude_leave_id is not None:
+            query += " AND pk_leave_id != ?"
+            values.append(exclude_leave_id)
+        db = get_db()
+        return db.execute(query, values).fetchone() is not None
+    except Exception:
+        return False
+
+
+def requestLeave(fk_employee_id, leave_type, start_date, end_date, hours_requested, comment_employee):
+    try:
+        query = """
+            INSERT INTO EmployeeLeave(fk_employee_id, leave_type, start_date, end_date, hours_requested, status, comment_employee)
+            VALUES (?, ?, ?, ?, ?, 'Pending', ?)
         """
         db = get_db()
-        db.execute(query, (fk_employee_id, leave_type, start_date, end_date, comment_employee))
+        db.execute(query, (fk_employee_id, leave_type, start_date, end_date, hours_requested, comment_employee))
         db.commit()
         return 'success'
     except Exception as e:
