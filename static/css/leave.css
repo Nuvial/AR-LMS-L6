@@ -189,6 +189,11 @@ tbody#employee-records-body.disabled{
     display: flex;
     width: 100%;
     justify-content: center;
-    align-items: center;
+    align-items: stretch;
     gap: 5px;
+    flex-wrap: wrap;
+}
+.actions-btns #sickLeaveType,
+.actions-btns #toilLeaveType {
+    flex: 1;
 }

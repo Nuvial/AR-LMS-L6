@@ -11,7 +11,7 @@
             <div class="name">AR LMS</div>
             <h2 class="title"><i class="fa-solid fa-circle-info"></i> About this platform</h2>
             <p class="lead-text">
-                The AtkinsRéalis Leave Management System (AR LMS) is a secure and contemporary application aiming to 
+                The AtkinsRéalis Leave Management System (AR LMS) is a secure and contemporary application aiming to
                 centralise all leave actions within a national organisational scope.
             </p>
         </header>
@@ -24,6 +24,40 @@
                         <span class="record-sub">What the platform does</span>
                     </span>
                 </a>
+                {% if current_user.id %}
+                <a href="#sec-employees" class="about-record">
+                    <span class="record-text">
+                        <span class="record-title">Employee Records</span>
+                        <span class="record-sub">Viewing and managing records</span>
+                    </span>
+                </a>
+                <a href="#sec-leave" class="about-record">
+                    <span class="record-text">
+                        <span class="record-title">Leave System</span>
+                        <span class="record-sub">Booking and approving leave</span>
+                    </span>
+                </a>
+                <a href="#sec-teams" class="about-record">
+                    <span class="record-text">
+                        <span class="record-title">Team Management</span>
+                        <span class="record-sub">Creating and managing teams</span>
+                    </span>
+                </a>
+                {% endif %}
+                <a href="#sec-accounts" class="about-record">
+                    <span class="record-text">
+                        <span class="record-title">Login Accounts</span>
+                        <span class="record-sub">Registration and account management</span>
+                    </span>
+                </a>
+                {% if current_user.id %}
+                <a href="#sec-settings" class="about-record">
+                    <span class="record-text">
+                        <span class="record-title">Personal Settings</span>
+                        <span class="record-sub">Profile and account preferences</span>
+                    </span>
+                </a>
+                {% endif %}
                 <a href="#sec-backup" class="about-record">
                     <span class="record-text">
                         <span class="record-title">Backup</span>
@@ -41,37 +75,235 @@
                 <section id="sec-overview" class="about-section">
                     <h3><i class="fas fa-circle-info"></i> Overview</h3>
                     <p>
-                        The AtkinsRéalis Leave Management System (AR LMS) is a secure and contemporary application aiming to 
+                        The AtkinsRéalis Leave Management System (AR LMS) is a secure and contemporary application aiming to
                         centralise all leave actions within a national organisational scope.
                         The application enables both employees and their respective team managers to oversee and book leave in a hierarchical manner.
-                        <br>
-                        Each user has a default annual and sick leave allowance that resets on the 1st of every year. The allowance is measured in hours, 
-                        and leave can be booked for any day of the week to a maximum of  regardless of the contracted work days to allow flexibility and 
-                        employee anonymity. The enablement of such flexibility is overseen by the immediate hierarchical manager who's responsibility it is 
-                        to approve or deny based on the established criteria within the team. 
                     </p>
                     <p>
-                        More information about the intricacies of the system can be found <a href="#">here</a>
+                        The platform is organised around three tiers of access: <strong>Employees</strong>, <strong>Managers</strong>, and <strong>Admins</strong>.
+                        Each tier inherits the capabilities of the tier below it, with additional administrative functions layered on top.
+                        Access to pages and actions is enforced server-side and adjusted dynamically in the interface to reflect what each role is permitted to do.
                     </p>
                 </section>
-                <section id="sec-backup" class="about-section">
-                    <h3><i class="fas fa-server"></i> Running on the backup server</h3>
+
+                {% if current_user.id %}
+
+                <section id="sec-employees" class="about-section">
+                    <h3><i class="fas fa-id-card"></i> Employee Records</h3>
                     <p>
-                        When the environment tag at the top of the page reads <strong>Backup Host</strong>, 
-                        the application is running on its backup host on <a href="https://render.com" target="_blank" rel="noopener">Render.com</a> 
-                        rather than the primary server. This automatic failover happens when the primary server is 
-                        down or temporarily unreachable.
+                        Employee records hold the core data for every person in the organisation: name, role, contracted hours, and leave allowances.
+                        What you can see and do on this page depends on your access level.
+                    </p>
+
+                    <h5><span class="badge bg-secondary me-2">Employee</span> View Record</h5>
+                    <p>
+                        Standard employees can view only their own record. The overview panel shows their employee ID, name, role, contracted daily and weekly hours,
+                        and their default annual and sick leave allowances. A calendar below the overview displays their booked leave for the year,
+                        with a table view available via the toggle switch in the panel header.
+                        No edits can be made from this page - employee records are managed by admins.
+                    </p>
+
+                    <h5><span class="badge bg-info text-dark me-2">Manager</span> Team Employee Records</h5>
+                    <p>
+                        Managers see a list of all employees assigned to their team in the left-hand panel. Selecting an employee loads their profile
+                        and leave calendar in the overview area. This is a read-only view: managers cannot add, edit, or delete employee records -
+                        those actions are restricted to admins.
+                    </p>
+
+                    <h5><span class="badge bg-warning text-dark me-2">Admin</span> Full Record Management</h5>
+                    <p>
+                        Admins have full access to every employee record in the organisation. Beyond viewing, admins can:
+                    </p>
+                    <ul>
+                        <li><strong>Add</strong> a new employee record via the <em>Add +</em> button in the list panel header.</li>
+                        <li>
+                            <strong>Edit</strong> any field on a record - first name, last name, contracted daily hours, contracted weekly hours,
+                            default annual leave balance (in hours), and default sick leave balance (in hours) - directly in the overview panel.
+                        </li>
+                        <li><strong>Delete</strong> an employee record permanently. This also removes any linked login account and leave history.</li>
+                    </ul>
+                </section>
+
+                <section id="sec-leave" class="about-section">
+                    <h3><i class="fas fa-calendar-check"></i> Leave System</h3>
+                    <p>
+                        The leave system allows employees to request time off and enables managers and admins to action those requests.
+                        Three leave types are supported: <strong>Annual Leave</strong>, <strong>Sick Leave</strong>, and <strong>Time off in Lieu (TOIL)</strong>.
+                    </p>
+
+                    <h5>Booking Leave</h5>
+                    <p>
+                        To submit a leave request, navigate to <em>Process Leave</em> (or <em>Request Leave</em> for standard employees) from the sidebar.
+                        Locate your employee record in the list and select it, then press the <strong>Request +</strong> button above the calendar.
+                        A prompt will ask you to select the leave type, after which you can click or drag a date range on the calendar to define the period.
                     </p>
                     <p>
-                        The backup runs on <a href="https://render.com/docs/free" target="_blank" rel="noopener">Render's free tier</a>, which uses 
-                        stateless containers. That means <strong>DATABASE PERSISTENCE IS LIMITED</strong>. Data written while on 
-                        the backup host will not be saved between container restarts 
-                        (<a href="https://render.com/docs/free#local-files-lost-on-redeploy" target="_blank" rel="noopener">details here</a>), and recent changes can be lost 
-                        once the container spins down or the primary comes back online. 
+                        The system validates the selected period against your contracted daily and weekly hours to ensure the request is reasonable. You may also attach an optional comment with the request.
+                        This booking process is identical for all user types - employees, managers, and admins all submit their own leave in the same way.
+                    </p>
+                    <div class="about-callout">
+                        <i class="fas fa-circle-info"></i>
+                        The system prevents overlapping leave. If you already have a request covering any day within the chosen date range,
+                        the submission will be rejected.
+                    </div>
+
+                    <h5 class="mt-3">
+                        <span class="badge bg-info text-dark me-2">Manager</span>
+                        <span class="badge bg-warning text-dark me-2">Admin</span>
+                        Reviewing Leave Requests
+                    </h5>
+                    <p>
+                        Managers and admins see an expanded view of the Process Leave page. The panel lists all employees who have
+                        pending leave requests - managers see requests from within their team, while admins see requests from across the entire organisation.
+                    </p>
+                    <p>
+                        Selecting an employee from this list loads their calendar and highlights their pending requests. Clicking a request from the calendar or table-view opens a
+                        detail panel showing the date range, hours requested, current leave balances, and any employee comments.
+                        From here, an admin or manager can add their own comment and either <strong>Approve</strong> or <strong>Deny</strong> the request.
+                    </p>
+                    <p>
+                        Managers may only action leave for employees in their direct team. Leave requests submitted by admins must be approved or denied
+                        by another admin - a manager cannot action an admin's leave.
+                    </p>
+                </section>
+
+                <section id="sec-teams" class="about-section">
+                    <h3><i class="fas fa-sitemap"></i> Team Management</h3>
+                    <p>
+                        The Team Management page is accessible to <span class="badge bg-warning text-dark">Admins</span> only.
+                        It provides a full view of all teams in the organisation and allows admins to create, edit, and delete them.
+                    </p>
+
+                    <h5>Creating a Team</h5>
+                    <p>
+                        Clicking <strong>Create Team +</strong> adds a new editable row to the team table. A team requires a name and an assigned manager,
+                        selected from eligible employees. Team members can be added at creation or later via the edit action.
+                        The manager selection is validated to confirm the employee exists and is not already managing another team.
+                        A confirmation modal is shown before the new team is saved.
+                    </p>
+
+                    <h5>Editing and Deleting Teams</h5>
+                    <p>
+                        Each team row has edit and delete actions. Editing allows the name, manager, and member list to be updated; unsaved changes can
+                        be discarded via the cancel/revert option. Deleting a team is permanent - however, employee records and leave history are preserved;
+                        affected employees simply become unassigned from any team.
+                    </p>
+
+                    <h5>Hierarchy View</h5>
+                    <p>
+                        Switching to the <strong>Hierarchy</strong> tab renders a live flowchart of the entire organisation.
+                        Teams appear as blue nodes, managers as purple nodes, and regular employees as dark nodes.
+                        Arrows connect each team to its members; a dashed arrow from a manager back to their team indicates their management responsibility.
+                        The hierarchy view reloads automatically whenever team data changes.
+                    </p>
+                </section>
+                
+                {% endif %}
+
+                <section id="sec-accounts" class="about-section">
+                    <h3><i class="fas fa-user-lock"></i> Login Accounts</h3>
+                    <p>
+                        Login accounts link an employee record to a set of credentials used to authenticate with the system.
+                        An employee record must exist before an account can be created for it.
+                        The actions available on the Login Accounts page vary by role.
+                    </p>
+
+                    <h5>Self-Registration</h5>
+                    <p>
+                        Employees can register themselves by visiting the <strong>Register</strong> page linked from the login screen.
+                        Registration requires a company-assigned <strong>Employee ID</strong>, a chosen <strong>username</strong> (3-25 alphanumeric characters),
+                        and a <strong>password</strong> (8-128 characters). The account is created in a <em>pending</em> state and cannot be used until
+                        an admin approves the request.
+                    </p>
+                    <p>
+                        Pending registrations appear in the <em>Pending Registrations</em> card on the Login Accounts page, visible only to admins.
+                        Each request can be <strong>approved</strong> (granting access) or <strong>denied</strong> (removing the pending record).
+                        A denied applicant must re-register or have an admin create an account for them directly.
+                    </p>
+
+                    <h5>Admin-Created Accounts</h5>
+                    <p>
+                        Admins can create accounts directly via the <strong>Create Account +</strong> button on the Login Accounts page.
+                        The admin selects an unregistered employee, sets a username, and assigns an initial password.
+                        Admin-created accounts are immediately active, but the user is <strong>required to change their password</strong> on first login.
+                    </p>
+
+                    <h5>Forgotten Password</h5>
+                    <p>
+                        If a user cannot access their account, an admin (or a manager for employees in their team) can reset the password from the Login Accounts page.
+                        Once reset, the user will be prompted to set a new password as soon as they next log in.
+                    </p>
+
+                    <h5><span class="badge bg-info text-dark me-2">Manager</span> Account Management</h5>
+                    <p>
+                        Managers can view the accounts of employees within their direct team hierarchy.
+                        They may <strong>change the password</strong> or <strong>change the username</strong> of those accounts, and can <strong>delete</strong> them.
+                        Managers cannot create new accounts - a tooltip on the disabled Create Account button explains this restriction.
+                    </p>
+
+                    <h5><span class="badge bg-warning text-dark me-2">Admin</span> Full Account Management</h5>
+                    <p>
+                        Admins have full control over all accounts: creating, editing, promoting, demoting, and deleting.
+                        An admin can <strong>promote</strong> a standard user to admin status or <strong>demote</strong> an existing admin - both actions
+                        require confirmation before taking effect.
+                        Admins are also the sole approvers of self-registration requests.
+                    </p>
+                </section>
+
+                {% if current_user.id %}
+
+                <section id="sec-settings" class="about-section">
+                    <h3><i class="fas fa-gear"></i> Personal Settings</h3>
+                    <p>
+                        The Personal Settings page is accessible to all users and provides a view of your own account and employee details.
+                        It is available from the sidebar and from the user menu at the bottom of the navigation panel.
+                    </p>
+                    <p>The following information is displayed on the settings page:</p>
+                    <ul>
+                        <li><strong>User ID</strong> - your unique account identifier within the system.</li>
+                        <li><strong>Employee ID</strong> - your company-assigned employee record number.</li>
+                        <li><strong>First Name - Last Name</strong> - editable from this page.</li>
+                        <li><strong>Position</strong> - your role within the organisation (Employee, Manager, or Admin).</li>
+                        <li><strong>Line Manager</strong> - the name of your assigned manager, if applicable.</li>
+                        <li><strong>Team</strong> - the name of the team you belong to, if assigned.</li>
+                        <li><strong>Username</strong> - editable from this page.</li>
+                    </ul>
+                    <p>
+                        Clicking <strong>Edit</strong> enables changes to your first name, last name, and username. Changes must be explicitly saved;
+                        unsaved edits can be cancelled and reverted at any time.
+                    </p>
+                    <p>
+                        The <strong>Change Password</strong> button opens a dialog where you can set a new password. The new password must differ from
+                        the current one and meet the length requirements (8-128 characters).
                     </p>
                     <div class="about-callout">
                         <i class="fas fa-triangle-exclamation"></i>
-                        Anything entered during a failover should be treated as <strong>temporary</strong>. 
+                        The <strong>Delete Account</strong> button permanently removes your <em>login account only</em>.
+                        Your employee record - including leave history, contracted hours, and other profile data - is not affected and continues to be
+                        managed by your line manager or administrator.
+                    </div>
+                </section>
+
+                {% endif %}
+
+                <section id="sec-backup" class="about-section">
+                    <h3><i class="fas fa-server"></i> Running on the backup server</h3>
+                    <p>
+                        When the environment tag at the top of the page reads <strong>Backup Host</strong>,
+                        the application is running on its backup host on <a href="https://render.com" target="_blank" rel="noopener">Render.com</a>
+                        rather than the primary server. This automatic failover happens when the primary server is
+                        down or temporarily unreachable.
+                    </p>
+                    <p>
+                        The backup runs on <a href="https://render.com/docs/free" target="_blank" rel="noopener">Render's free tier</a>, which uses
+                        stateless containers. That means <strong>DATABASE PERSISTENCE IS LIMITED</strong>. Data written while on
+                        the backup host will not be saved between container restarts
+                        (<a href="https://render.com/docs/free#local-files-lost-on-redeploy" target="_blank" rel="noopener">details here</a>), and recent changes can be lost
+                        once the container spins down or the primary comes back online.
+                    </p>
+                    <div class="about-callout">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        Anything entered during a failover should be treated as <strong>temporary</strong>.
                         Normal persistence resumes automatically once the primary server is reachable again.
                     </div>
                 </section>
@@ -85,7 +317,7 @@
         id: "{{ current_user.id }}",
         admin: "{{ '1' if current_user.admin else '0' }}",
         is_manager: "{{ '1' if current_user.is_manager else '0' }}"
-    } // TODO - Restrict certain about page content based on permissions.
+    }
 
     $(document).ready(function() {
         $('.return').show();

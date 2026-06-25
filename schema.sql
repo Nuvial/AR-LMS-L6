@@ -80,13 +80,13 @@ VALUES
 -- Seed EmployeeLeave
 INSERT INTO EmployeeLeave (fk_employee_id, leave_type, start_date, end_date, hours_requested, status)
 VALUES
-(2, 'Annual Leave', '2025-06-01', '2025-06-05', 40, 'Approved'),
-(6, 'Annual Leave', '2025-07-05', '2025-07-10', 40, 'Rejected'),
-(6, 'Annual Leave', '2025-07-05', '2025-07-10', 40, 'Pending'),
-(6, 'Annual Leave', '2025-08-01', '2025-08-08', 64, 'Approved'),
-(10, 'Annual Leave', '2025-07-15', '2025-07-20', 40, 'Pending'),
-(3, 'Sick Leave', '2025-06-10', '2025-06-12', 24, 'Approved'),
-(4, 'Sick Leave', '2025-07-12', '2025-07-14', 24, 'Pending'),
-(7, 'Sick Leave', '2025-08-10', '2025-08-12', 24, 'Approved'),
-(8, 'Sick Leave', '2025-07-18', '2025-07-20', 24, 'Rejected'),
-(9, 'Sick Leave', '2025-07-18', '2025-07-20', 24, 'Pending');
+(2, 'Annual Leave', '2026-06-01', ' 2026-06-05', 40, 'Approved'),
+(6, 'Annual Leave', ' 2026-07-05', ' 2026-07-10', 40, 'Rejected'),
+(6, 'Annual Leave', ' 2026-07-05', ' 2026-07-10', 40, 'Pending'),
+(6, 'Annual Leave', ' 2026-08-01', ' 2026-08-08', 64, 'Approved'),
+(10, 'Annual Leave', ' 2026-07-15', ' 2026-07-20', 40, 'Pending'),
+(3, 'Sick Leave', ' 2026-06-10', ' 2026-06-12', 24, 'Approved'),
+(4, 'Sick Leave', ' 2026-07-12', ' 2026-07-14', 24, 'Pending'),
+(7, 'Sick Leave', ' 2026-08-10', ' 2026-08-12', 24, 'Approved'),
+(8, 'Sick Leave', ' 2026-07-18', ' 2026-07-20', 24, 'Rejected'),
+(9, 'Sick Leave', ' 2026-07-18', ' 2026-07-20', 24, 'Pending');
