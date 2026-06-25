@@ -31,7 +31,7 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Run tests with coverage
-        run: pytest --cov --cov-fail-under=68
+        run: pytest --cov --cov-fail-under=85
 
       - name: Bandit scan
         run: bandit -c pyproject.toml -r . -ll
