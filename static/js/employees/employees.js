@@ -4,10 +4,14 @@ let editing = false
 let employee_leave = {}; // Cache for employee leave records
 let employee_leave_calendar_cache = {}; // Cache for calendar events
 
+async function softRefresh(){
+    await loadEmployees();
+}
+
 /**
- * @param {Array} specific - Array of employee ID's to load specifically. (Optional) 
+ * @param {Array} specific - Array of employee ID's to load specifically. (Optional)
  */
-async function loadEmployees(specific=null, stats=true, leave=true) {
+async function loadEmployees(specific=null, leave=true) {
     try {
         const resp = await $.ajax({
             url: '/employees/get_employees',
@@ -16,7 +20,6 @@ async function loadEmployees(specific=null, stats=true, leave=true) {
 
         if (resp.length > 0){
             populateEmployeesRecords(resp, specific);
-            if (stats) loadEmployeeStats();
             if (leave) {
                 loadEmployeeLeave();
                 let formatted = specific
@@ -31,21 +34,7 @@ async function loadEmployees(specific=null, stats=true, leave=true) {
         alert("Failed to load employees data. Please try again later.");
     }
 }
-function loadEmployeeStats(){
-    $.ajax({
-        url: '/stats/get_stats',
-        type: 'GET',
-        success: function(resp){
-            if (resp.length > 0) {
-                populateEmployeesRecordsStats(resp, 'stats');
-            }
-        },
-        error: function(xhr, status, error) {
-            console.log("Error loading employees: " + error);
-            alert("Failed to load employees stats. Please try again later.");
-        }
-    });
-}
+
 function loadEmployeeLeave() {
     $.ajax({
         url: '/leave/get_leave',
@@ -56,7 +45,6 @@ function loadEmployeeLeave() {
         success: function(resp){
             if (resp.message == 'success') {
                 const leave = resp.leave;
-                // Populate employee leave for quick access without multiple AJAX calls
                 employee_leave = {};
                 employee_leave_calendar_cache = {};
 
@@ -73,7 +61,6 @@ function loadEmployeeLeave() {
                     });
                 });
 
-                // Cache calendar events for each employee
                 Object.keys(employee_leave).forEach(employee_id => {
                     if (!employee_leave_calendar_cache[employee_id]) {
                         employee_leave_calendar_cache[employee_id] = employee_leave[employee_id].map(record => {
@@ -102,7 +89,6 @@ function loadEmployeeLeave() {
             }
         },
         complete: function() {
-            // Populate employee leave records in table view
             populateLeaveTable();
             hideLoader();
         },
@@ -132,10 +118,8 @@ function populateEmployeesRecords(data, specific) {
     table_body.empty();
     stats_body.empty();
 
-    // If specific ids are provided, filter and order data
     if (Array.isArray(specific) && specific.length > 0) {
         const data_map = new Map(data.map(record => [record.pk_employee_id, record]));
-        // Filter and order data according to specific id
         data = specific
                 .map(id => data_map.get(id))
                 .filter(record => record !== undefined);
@@ -147,7 +131,7 @@ function populateEmployeesRecords(data, specific) {
         <tr data-employee-id="${employee_record.pk_employee_id}">
             <td class="employee-id">${employee_record.pk_employee_id}</td>
             <td class="employee-name">${employee_record.first_name} ${employee_record.last_name}</td>
-        </tr>      
+        </tr>
         `
 
         stats_html += `
@@ -155,7 +139,7 @@ function populateEmployeesRecords(data, specific) {
             <div class="col-4 left">
                 <div class="first-name">
                     <span class="label">First Name:</span>
-                    <span class="employee-first-name editable">${employee_record.first_name}</span> 
+                    <span class="employee-first-name editable">${employee_record.first_name}</span>
                 </div>
                 <div class="last-name">
                     <span class="label">Last Name:</span>
@@ -164,7 +148,7 @@ function populateEmployeesRecords(data, specific) {
                 <hr>
                 <div class="position">
                     <span class="label">Position:</span>
-                    <span class="employee-position editable">${employee_record.employee_position}</span>
+                    <span class="employee-position">${formatRole(employee_record.role)}</span>
                 </div>
                 <div class="id">
                     <span class="label">Employee ID:</span>
@@ -174,7 +158,7 @@ function populateEmployeesRecords(data, specific) {
             <div class="col-4 center">
                 <div class="leave-balance">
                     <span class="label">Default Leave Balance:</span>
-                    <span class="employee-default-leave-bal editable">${employee_record.default_leave_balance} days</span>
+                    <span class="employee-default-leave-bal editable">${employee_record.default_leave_balance} hours</span>
                 </div>
                 <div class="leave-remaining placeholder-glow">
                     <span class="label">Leave Remaining:</span>
@@ -182,7 +166,7 @@ function populateEmployeesRecords(data, specific) {
                 </div>
                 <div class="sick-leave">
                     <span class="label">Default Sick Leave:</span>
-                    <span class="employee-default-sick-bal editable">${employee_record.default_sick_leave_balance} days</span>
+                    <span class="employee-default-sick-bal editable">${employee_record.default_sick_leave_balance} hours</span>
                 </div>
                 <div class="sick-leave-remaining placeholder-glow">
                     <span class="label">Sick Leave Remaining:</span>
@@ -190,22 +174,13 @@ function populateEmployeesRecords(data, specific) {
                 </div>
             </div>
             <div class="col-4 right">
-                <div class="attendance placeholder-glow">
-                    <span class="label">Attendance:</span>
-                    <span class="employee-attendance placeholder editable"></span>
+                <div class="contracted-daily">
+                    <span class="label">Contracted Daily Hours:</span>
+                    <span class="employee-contracted-daily editable">${employee_record.contracted_daily_hours} hours</span>
                 </div>
-                <div class="productivity placeholder-glow">
-                    <span class="label">Productivity:</span>
-                    <span class="employee-productivity placeholder editable"></span>
-                </div>
-                <div class="performance placeholder-glow">
-                    <span class="label">Performance (0-10):</span>
-                    <span class="employee-performance placeholder editable"></span>
-                </div>
-                <hr>
-                <div class="last-updated placeholder-glow">
-                    <span class="label">Last Updated:</span>
-                    <span class="employee-stats-recorded placeholder"></span>
+                <div class="contracted-weekly">
+                    <span class="label">Contracted Weekly Hours:</span>
+                    <span class="employee-contracted-weekly editable">${employee_record.contracted_weekly_hours} hours</span>
                 </div>
             </div>
         </div>
@@ -216,7 +191,7 @@ function populateEmployeesRecords(data, specific) {
 }
 
 function populateLeaveTable() {
-    const leave_table_body = $('#tableView');
+    const leave_table_body = $('#tableView-tables');
 
     let html = '';
     Object.keys(employee_leave).forEach(employee_id => {
@@ -246,7 +221,7 @@ function populateLeaveTable() {
         });
         html += '</table>';
     });
-    
+
     leave_table_body.html(html);
 }
 
@@ -260,8 +235,8 @@ function populateEmployeesRecordsStats(data, field) {
         if (field === 'leave'){
             if (target_data) {
                 try {
-                    $(record).find('.employee-leave-remaining').text(`${target_data.leave_remaining} days`).removeClass('placeholder');
-                    $(record).find('.employee-sick-remaining').text(`${target_data.sick_leave_remaining} days`).removeClass('placeholder');
+                    $(record).find('.employee-leave-remaining').text(`${target_data.leave_remaining} hours`).removeClass('placeholder');
+                    $(record).find('.employee-sick-remaining').text(`${target_data.sick_leave_remaining} hours`).removeClass('placeholder');
                 } catch (e) {
                     if (e instanceof TypeError){
                         console.log(`Employee ID ${employee_id} does not have a valid sick leave.`);
@@ -270,45 +245,31 @@ function populateEmployeesRecordsStats(data, field) {
                     }
                 }
             }
-        } else if (field === 'stats'){
-            try {
-                $(record).find('.employee-attendance').text(`${target_data.attendance} %`).removeClass('placeholder');
-                $(record).find('.employee-productivity').text(`${target_data.productivity} %`).removeClass('placeholder');
-                $(record).find('.employee-performance').text(`${target_data.performance}`).removeClass('placeholder');
-                $(record).find('.employee-stats-recorded').text(`${new Date(target_data.date_recorded).toLocaleString()}`).removeClass('placeholder');
-            } catch (e) {
-                if (e instanceof TypeError){
-                    console.error(`Employee ID: ${employee_id} does not have a stats record.`);
-                } else {
-                    console.error(e);
-                }
-            }
         }
     });
 }
 
 function handleStatsPeek(element) {
-    // Handle stats peek on hover
     const employeeId = $(element).data('employee-id');
     const statsDiv = $(`#employee-stats-body div[data-employee-id="${employeeId}"]`);
 
-    $('#employee-stats-body div.row').hide(); // Hide all stats divs
+    $('#employee-stats-body div.row').hide();
     statsDiv.removeClass('active-stats')
             .addClass('hover-stats')
-            .show(); // Show the hovered employee's stats div
+            .show();
 }
 
 function handleLeavePeek(element, calendar) {
-    // Create new event source for calendar
-    calendar.removeAllEvents(); // Clear existing events from calendar
+    calendar.removeAllEvents();
     const employeeId = $(element).data('employee-id');
     const calendarContainerDiv = $('.card-body.calendar-container');
     const events = employee_leave_calendar_cache[employeeId] || [];
 
-    if (events.length === 0) { // If employee has no leave records, set calendar to idle state
+    if (events.length === 0) {
         calendarContainerDiv.removeClass('hover-calendar active-calendar')
                             .addClass('idle-calendar');
-        $('#tableView table').hide(); // Hide all tables
+        $('#tableView-tables table').hide();
+        $('#tableView-empty').show();
         return;
     }
 
@@ -316,20 +277,18 @@ function handleLeavePeek(element, calendar) {
     calendarContainerDiv.removeClass('idle-calendar active-calendar')
                         .addClass('hover-calendar');
 
-    // Show table view for the selected employee
-    $('#tableView table').hide(); // Hide all tables
-    $(`#tableView table[data-employee-id="${employeeId}"]`).show(); // Show the table for the hovered employee
+    $('#tableView-tables table').hide();
+    $('#tableView-empty').hide();
+    $(`#tableView-tables table[data-employee-id="${employeeId}"]`).show();
 }
 
 function focusEmployeeRecord(element, calendar) {
-    // Show stats for the selected employee by reusing hover functionality
     handleStatsPeek(element);
     $('#employee-stats-body div.hover-stats').removeClass('hover-stats')
                                              .addClass('active-stats');
 
-    // Show calendar for selected employee by reusing hover functionality
     handleLeavePeek(element, calendar);
-    if ($('.card-body.calendar-container').hasClass('hover-calendar')) { // Only activate if calendar has events
+    if ($('.card-body.calendar-container').hasClass('hover-calendar')) {
         $('.card-body.calendar-container').removeClass('hover-calendar')
                                           .addClass('active-calendar');
     }
@@ -337,25 +296,27 @@ function focusEmployeeRecord(element, calendar) {
 
 function deSelectRecord(record) {
     $(record).removeClass('selected-record');
-    $(record).find('.editing-controls-container').hide(300);
     selected_employee_id = null;
     editing = false;
+    $('#stats-editing-controls').fadeOut(300);
+    $('#tableView-empty').hide();
     handleStatsPeek(record);
     handleLeavePeek(record, calendar);
 }
 
 $('#employee-records-body').on('mouseover', 'tr', function() {
-    if (selected_employee_id) return; // Prevent hover event if an employee is selected
+    if (selected_employee_id) return;
     handleStatsPeek(this);
     handleLeavePeek(this, calendar);
 });
 
 $('#employee-records-body').on('mouseleave', 'tr', function() {
-    if (selected_employee_id) return; // Prevent hover event if an employee is selected
+    if (selected_employee_id) return;
     $('#employee-stats-body div.hover-stats').removeClass('hover-stats').hide();
     $('.card-body.calendar-container').removeClass('hover-calendar')
                                       .addClass('idle-calendar');
-    $('#tableView table').hide();
+    $('#tableView-tables table').hide();
+    $('#tableView-empty').hide();
     calendar.removeAllEvents();
 });
 
@@ -364,14 +325,14 @@ $('#employee-records-body').on('click', 'tr', function() {
 
     const employeeId = $(this).data('employee-id');
 
-    if (selected_employee_id === employeeId) { // Deselect if already selected
+    if (selected_employee_id === employeeId) {
         deSelectRecord(this)
         return;
     }
 
-    selected_employee_id = employeeId; // Store selected employee ID
-    $(this).siblings().removeClass('selected-record'); // Remove selection from other records if any
-    $(this).addClass('selected-record'); // Add selection to the clicked record
+    selected_employee_id = employeeId;
+    $(this).siblings().removeClass('selected-record');
+    $(this).addClass('selected-record');
 
-    focusEmployeeRecord(this, calendar); // Focus on the clicked employee record
+    focusEmployeeRecord(this, calendar);
 });

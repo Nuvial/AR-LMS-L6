@@ -29,7 +29,7 @@ async function loadProfile() {
                 // Update profile object
                 profile.profile.firstName = employee.first_name;
                 profile.profile.lastName = employee.last_name;
-                profile.profile.position = employee.employee_position;
+                profile.profile.position = formatRole(employee.role);
 
                 if (employee.fk_team_id !== null) {
                     profile.profile.lineManager = `${employee.manager_first_name} ${employee.manager_last_name}`;
@@ -147,10 +147,10 @@ async function updateData() {
             }),
             contentType: 'application/json',
             success: function(resp){
-                if (resp.message = 'success'){
+                if (resp.message === 'success'){
                     flashMessage('Name was changed successfully.', 'success', 3000)
                 } else {
-                    flashMessage('Error changing name. Please try again', 'danger', 3000)
+                    flashMessage(resp.error || 'Error changing name. Please try again', 'danger', 6000)
                 }
             },
             error: function(xhr, status, error) {
@@ -167,10 +167,10 @@ async function updateData() {
             data: JSON.stringify({'username': newData.username}),
             contentType: 'application/json',
             success: function(resp){
-                if (resp.message = 'success'){
+                if (resp.message === 'success'){
                     flashMessage('Username was changed successfully.', 'success', 3000)
                 } else {
-                    flashMessage('Error changing username for user account. Please try again', 'danger', 3000)
+                    flashMessage(resp.error || 'Error changing username for user account. Please try again', 'danger', 6000)
                 }
             },
             error: function(xhr, status, error) {
@@ -193,10 +193,10 @@ function changePassword(id, password){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 flashMessage('User password changed successfully.', 'success', 3000)
             } else {
-                flashMessage('Error changing password on user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error changing password on user account. Please try again', 'danger', 6000)
             }
             $('.modal.show').modal('hide');
         },

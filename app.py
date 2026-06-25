@@ -1,6 +1,6 @@
 import os
 from flask import Flask, redirect, url_for, g
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_bcrypt import Bcrypt
 
 from routes.models.auth import User, registerUser, upgradeUser
@@ -8,7 +8,10 @@ from db import get_db
 
 app = Flask(__name__)
 bcrypt = Bcrypt()
-app.secret_key = 'secret_key'  # TODO: Replace with a secure key
+secret_key = os.environ.get('FLASK_SECRET_KEY')
+if not secret_key:
+    raise RuntimeError('FLASK_SECRET_KEY environment variable is not set.')
+app.secret_key = secret_key
 
 # === Blueprint Registration ===
 from routes.employees import employees
@@ -18,10 +21,7 @@ from routes.auth import auth
 app.register_blueprint(auth)
 
 from routes.about import about
-app.register_blueprint(about)
-
-from routes.stats import stats
-app.register_blueprint(stats, url_prefix='/stats')
+app.register_blueprint(about, url_prefix='/about')
 
 from routes.leave import leave
 app.register_blueprint(leave, url_prefix='/leave')
@@ -40,7 +40,19 @@ login_manager.login_message_category = 'warning'
 
 @app.route('/')
 def index():
-    return redirect(url_for('auth.dashboard', active_page='dashboard'))
+    if current_user.is_authenticated:
+        return redirect(url_for('auth.dashboard'))
+    return redirect(url_for('auth.login'))
+
+
+@app.after_request
+def prevent_caching(response):
+    # Force the browser to revalidate all pages so history.back() can't serve a cached authenticated page after the user has logged out.
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 @app.route('/ping')
 def ping():
@@ -75,12 +87,17 @@ def init_db():
             'employee_id': 1,
             'username': 'admin',
             'hashed_password': bcrypt.generate_password_hash('admin').decode('utf-8')
-        })
+        },
+        False,
+        True
+        )
         registerUser({
             'employee_id': 2,
             'username': 'user',
             'hashed_password': bcrypt.generate_password_hash('user').decode('utf-8')
-        })
+        },
+        False,
+        True)
         upgradeUser(1)
         print("[INIT] Database initialised. Admin & User account created.")
 
@@ -129,5 +146,3 @@ def inject_env_info():
     }
 
 ensure_db_exists()
-if __name__ == '__main__':
-    app.run(debug=True)

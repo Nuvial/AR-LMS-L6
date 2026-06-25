@@ -48,21 +48,21 @@ def getEmployees(teamId=None):
         # Create base query
         query = """
             SELECT
-                pk_employee_id,
-                first_name,
-                last_name,
-                employee_position
-            FROM Employees
+                e.pk_employee_id,
+                e.first_name,
+                e.last_name,
+                r.name AS role
+            FROM Employees e
+            JOIN Roles r ON e.fk_role_id = r.pk_role_id
         """
         values = ()
 
         if (teamId):
-            # Add condition to base query if id is provided
-            query += " WHERE fk_team_id = ?"
+            query += " WHERE e.fk_team_id = ?"
             values = (teamId,)
         else:
-            query += """ 
-                WHERE fk_team_id IS NULL AND fk_role_id = 3
+            query += """
+                WHERE e.fk_team_id IS NULL AND r.name = 'employee'
             """
         
         # Execute the query
@@ -87,7 +87,7 @@ def getPossibleManagers():
                 e.pk_employee_id,
                 e.first_name,
                 e.last_name,
-                e.employee_position
+                r.name AS role
             FROM Employees e
             JOIN Roles r ON e.fk_role_id = r.pk_role_id
             WHERE e.pk_employee_id NOT IN (
@@ -118,8 +118,9 @@ def getEmployeeManager(employeeId):
                 m.pk_employee_id,
                 m.first_name,
                 m.last_name,
-                m.employee_position
+                r.name AS role
             FROM Employees m
+            JOIN Roles r ON m.fk_role_id = r.pk_role_id
             JOIN Team t on m.pk_employee_id = t.fk_manager_id
             JOIN Employees e on e.fk_team_id = t.pk_team_id
             WHERE e.pk_employee_id = ?
@@ -137,45 +138,53 @@ def getEmployeeManager(employeeId):
     except Exception as e:
         raise Exception(f"An error occurred: {e}")
 
+def validate_create_team(managerId, employeeIds):
+    """
+    Validates input for creating a new team.
+    Returns an error string if validation fails, or None if valid.
+    """
+    currentTeams = [str(team['fk_manager_id']) for team in getTeams()]
+    teamFreeEmployees = [str(e['pk_employee_id']) for e in getEmployees()['employees']]
+
+    if managerId in employeeIds:
+        return 'Manager cannot be an employee to the team.'
+
+    if managerId not in teamFreeEmployees:
+        managers = [str(m['pk_employee_id']) for m in getEmployeeManager(managerId)]
+        for manager in managers:
+            if manager not in employeeIds:
+                continue
+            return 'A team member cannot be a manager of the assigned manager.'
+
+    if managerId in currentTeams:
+        return 'A manager can only manage one team at a time.'
+
+    for employee in employeeIds:
+        if str(employee) not in teamFreeEmployees:
+            return 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'
+
+    if employeeIds:
+        db = get_db()
+        placeholders = ','.join('?' * len(employeeIds))
+        if db.execute(
+            f"SELECT e.pk_employee_id FROM Employees e"  # nosec B608 -- `placeholders` is only '?' chars; IDs are passed as parameterised integers, not interpolated into the SQL
+            f" JOIN Roles r ON e.fk_role_id = r.pk_role_id"
+            f" WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'",
+            [int(eid) for eid in employeeIds]
+        ).fetchone():
+            return 'Admins cannot be assigned as team employees.'
+
+    return None
+
+
 def createTeam(teamName, managerId, employeeIds):
     """
     Creates a team record in the Team table for a new team.
     """
     try:
-        currentTeams = [str(team['fk_manager_id']) for team in getTeams()]
-        teamFreeEmployees = [str(employees['pk_employee_id']) for employees in getEmployees()['employees']]
-
-        # Ensure manager is not in the employee Ids
-        if (managerId in employeeIds): 
-            return {'message': 'error', 'error': 'Manager cannot be an employee to the team.'}
-        
-        # Ensure if manager is an employee in a different team, the employee is not their manager
-        if (managerId not in teamFreeEmployees):
-            managers = [str(manager['pk_employee_id']) for manager in getEmployeeManager(managerId)]
-            for manager in managers:
-                if (manager not in employeeIds): continue
-                return {'message': 'error', 'error': 'A team member cannot be a manager of the assigned manager.'}
-        
-        # Ensure manager is not already managing a different team
-        if (managerId in currentTeams):
-            return {'message': 'error', 'error': 'A manager can only manage one team at a time.'}
-        
-        # Ensure employees are not already in a different team
-        for employee in employeeIds:
-            if (str(employee) not in teamFreeEmployees):
-                return {'message': 'error', 'error': 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'}
-
-        # Ensure no admin is added as a team employee
-        if employeeIds:
-            db_check = get_db()
-            placeholders = ','.join('?' * len(employeeIds))
-            admin_in_team = db_check.execute(f"""
-                SELECT e.pk_employee_id FROM Employees e
-                JOIN Roles r ON e.fk_role_id = r.pk_role_id
-                WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'
-            """, [int(eid) for eid in employeeIds]).fetchone()
-            if admin_in_team:
-                return {'message': 'error', 'error': 'Admins cannot be assigned as team employees.'}
+        error = validate_create_team(managerId, employeeIds)
+        if error:
+            return {'message': 'error', 'error': error}
 
         db = get_db()
 
@@ -213,52 +222,62 @@ def createTeam(teamName, managerId, employeeIds):
     except Exception as e:
         return {'message': 'error', 'error': str(e)}
 
+def validate_update_team(teamId, managerId, employeeIds):
+    """
+    Validates input for updating a team. employeeIds is a list of dicts with 'pk_employee_id'.
+    Returns an error string if validation fails, or None if valid.
+    """
+    currentTeams = [{team['pk_team_id']: str(team['fk_manager_id'])} for team in getTeams()]
+    teamFreeEmployees = [str(e['pk_employee_id']) for e in getEmployees()['employees']]
+    thisTeamEmployees = [str(e['pk_employee_id']) for e in getEmployees(teamId)['employees']]
+    emp_ids_as_str = [str(e['pk_employee_id']) for e in employeeIds]
+
+    if str(managerId) in emp_ids_as_str:
+        return 'Manager cannot be an employee to the team.'
+
+    if managerId not in teamFreeEmployees:
+        managers = [str(m['pk_employee_id']) for m in getEmployeeManager(managerId)]
+        for manager in managers:
+            if manager not in emp_ids_as_str:
+                continue
+            return 'A team member cannot be a manager of the assigned manager.'
+
+    for team in currentTeams:
+        for tId, mId in team.items():
+            if managerId == mId and tId != teamId:
+                return 'A manager can only manage one team at a time.'
+
+    for employee in employeeIds:
+        emp_id = str(employee['pk_employee_id'])
+        if emp_id not in teamFreeEmployees and emp_id not in thisTeamEmployees:
+            return 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'
+
+    if employeeIds:
+        emp_id_list = [int(e['pk_employee_id']) for e in employeeIds]
+        db = get_db()
+        placeholders = ','.join('?' * len(emp_id_list))
+        if db.execute(
+            f"SELECT e.pk_employee_id FROM Employees e"  # nosec B608 -- `placeholders` is only '?' chars; IDs are in `emp_id_list` as integers, passed as parameterised values
+            f" JOIN Roles r ON e.fk_role_id = r.pk_role_id"
+            f" WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'",
+            emp_id_list
+        ).fetchone():
+            return 'Admins cannot be assigned as team employees.'
+
+    return None
+
+
 def updateTeam(teamId, teamName, managerId, employeeIds):
     """
     Updates a team record in the Team table for a new team.
     """
     try:
+        error = validate_update_team(teamId, managerId, employeeIds)
+        if error:
+            return {'message': 'error', 'error': error}
+
         existingTeam = getTeams(teamId)
         oldManagerId = existingTeam[0]['fk_manager_id'] if existingTeam else None
-
-        currentTeams = [{team['pk_team_id']: str(team['fk_manager_id'])} for team in getTeams()]
-        teamFreeEmployees = [str(employees['pk_employee_id']) for employees in getEmployees()['employees']]
-        thisTeamEmployees = [str(employees['pk_employee_id']) for employees in getEmployees(teamId)['employees']]
-
-        # Ensure manager is not in the employee Ids
-        if (managerId in employeeIds): 
-            return {'message': 'error', 'error': 'Manager cannot be an employee to the team.'}
-
-        # Ensure if manager is an employee in a different team, the employee is not their manager
-        if (managerId not in teamFreeEmployees):
-            managers = [str(manager['pk_employee_id']) for manager in getEmployeeManager(managerId)]
-            for manager in managers:
-                if (manager not in employeeIds): continue
-                return {'message': 'error', 'error': 'A team member cannot be a manager of the assigned manager.'}
-
-        # Ensure manager is not already managing a different team
-        for team in currentTeams:
-            for tId, mId in team.items():
-                if (managerId == mId and tId != teamId):
-                    return {'message': 'error', 'error': 'A manager can only manage one team at a time.'}
-
-        # Ensure employees are not already in a different team
-        for employee in employeeIds:
-            if ((str(employee['pk_employee_id']) not in teamFreeEmployees) and (str(employee['pk_employee_id']) not in thisTeamEmployees)):
-                return {'message': 'error', 'error': 'One or more of the employees are already in a team. An employee can only be part of one team at a time.'}
-
-        # Ensure no admin is added as a team employee
-        if employeeIds:
-            emp_id_list = [int(e['pk_employee_id']) for e in employeeIds]
-            db_check = get_db()
-            placeholders = ','.join('?' * len(emp_id_list))
-            admin_in_team = db_check.execute(f"""
-                SELECT e.pk_employee_id FROM Employees e
-                JOIN Roles r ON e.fk_role_id = r.pk_role_id
-                WHERE e.pk_employee_id IN ({placeholders}) AND r.name = 'admin'
-            """, emp_id_list).fetchone()
-            if admin_in_team:
-                return {'message': 'error', 'error': 'Admins cannot be assigned as team employees.'}
 
         db = get_db()
 

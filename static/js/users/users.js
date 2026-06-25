@@ -1,3 +1,18 @@
+let editing = false;
+
+function setEditing(state, $editRow = null) {
+    editing = state;
+    if (state) {
+        $('#createAccount').addClass('disabled');
+        const $allRows = $('#userTableBody tr');
+        const $toDisable = $editRow ? $allRows.not($editRow) : $allRows;
+        $toDisable.find('td.actions > div').addClass('disabled');
+    } else {
+        $('#createAccount').removeClass('disabled');
+        $('#userTableBody tr').find('td.actions > div').removeClass('disabled');
+    }
+}
+
 $(document).ready(function(){
     //Check localstorage for any stored flashmessages - This is stored if the user changes their own username.
     const flash = localStorage.getItem('flashMessage');
@@ -8,10 +23,11 @@ $(document).ready(function(){
     }
 
     loadUsers();
+    loadPendingRegistrations();
 
     initSearch(
-        '#employee-search', 
-        '#userTableBody tr',  
+        '#employee-search',
+        '#userTableBody tr',
         [
             {selector: '.first-name'},
             {selector: '.last-name'},
@@ -23,8 +39,10 @@ $(document).ready(function(){
 
 function softRefresh(){
     $('.modal.show').modal('hide');
-    $('#createAccount').removeClass('disabled');
+    $('#tempPassword').val('');
+    setEditing(false);
     loadUsers();
+    loadPendingRegistrations();
 }
 
 function loadUsers(){
@@ -49,6 +67,89 @@ function loadUsers(){
     });
 }
 
+function loadPendingRegistrations(){
+    if (current_user.admin != '1') return;
+    $.ajax({
+        url: '/users/pending_registrations',
+        type: 'GET',
+        success: function(resp){
+            if (resp.length > 0){
+                populatePendingTable(resp);
+                $('#pendingCard').show();
+            } else {
+                $('#pendingCard').hide();
+            }
+        },
+        error: function(){
+            $('#pendingCard').hide();
+        }
+    });
+}
+
+function populatePendingTable(pending) {
+    const tbody = $('#pendingTableBody');
+    let html = '';
+    pending.forEach(user => {
+        html += `
+            <tr data-user-id="${user.pk_user_id}">
+                <td class="employee-id">${user.fk_employee_id}</td>
+                <td class="first-name">${user.first_name}</td>
+                <td class="last-name">${user.last_name}</td>
+                <td class="username">${user.username}</td>
+                <td class="actions align-middle">
+                    <div class="pending-actions">
+                        <button type="button" class="btn btn-success btn-sm pending-approve w-100" title="Approve registration.">Approve</button>
+                        <button type="button" class="btn btn-danger btn-sm pending-deny w-100" title="Deny registration.">Deny</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.html(html);
+}
+
+function approvePendingRegistration(user_id){
+    $.ajax({
+        url: `/users/confirm_registration/${user_id}`,
+        type: 'PUT',
+        beforeSend: function(){ showLoader(); },
+        success: function(resp){
+            if (resp.message === 'success'){
+                softRefresh();
+                flashMessage('Registration approved. The user can now log in.', 'success', 3000);
+            } else {
+                softRefresh();
+                flashMessage(resp.error || 'Error approving registration. Please try again.', 'danger', 6000);
+            }
+        },
+        complete: function(){ hideLoader(); },
+        error: function(){
+            flashMessage('Failed to approve registration. Please try again.', 'danger', 6000);
+        }
+    });
+}
+
+function denyPendingRegistration(user_id){
+    $.ajax({
+        url: `/users/deny_registration/${user_id}`,
+        type: 'DELETE',
+        beforeSend: function(){ showLoader(); },
+        success: function(resp){
+            if (resp.message === 'success'){
+                softRefresh();
+                flashMessage('Registration denied and pending account removed.', 'success', 3000);
+            } else {
+                softRefresh();
+                flashMessage(resp.error || 'Error denying registration. Please try again.', 'danger', 6000);
+            }
+        },
+        complete: function(){ hideLoader(); },
+        error: function(){
+            flashMessage('Failed to deny registration. Please try again.', 'danger', 6000);
+        }
+    });
+}
+
 function createAccount(data){
     $.ajax({
         url: '/users/add_user',
@@ -59,12 +160,13 @@ function createAccount(data){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
-                softRefresh()
-                flashMessage('User account created successfully.', 'success', 3000)
+            if (resp.message === 'success'){
+                softRefresh();
+                flashMessage('User account created successfully.', 'success', 3000);
             } else {
-                softRefresh()
-                flashMessage('Error creating user account. Please try again', 'danger', 3000)
+                $('.modal.show').modal('hide');
+                $('#tempPassword').val('');
+                flashMessage(resp.error || 'Error creating user account. Please try again', 'danger', 6000);
             }
         },
         complete: function(){
@@ -84,12 +186,12 @@ function deleteUser(user_id){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 softRefresh()
                 flashMessage('User account deleted successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error deleting user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error deleting user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -137,12 +239,12 @@ function demoteUser(user_id){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 softRefresh()
                 flashMessage('User account demoted successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error demoting user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error demoting user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -164,12 +266,13 @@ function changePassword(id, password){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 softRefresh()
                 flashMessage('User password changed successfully.', 'success', 3000)
             } else {
-                softRefresh()
-                flashMessage('Error changing password on user account. Please try again', 'danger', 3000)
+                $('.modal.show').modal('hide');
+                $('#tempPassword').val('');
+                flashMessage(resp.error || 'Error changing password on user account. Please try again', 'danger', 6000);
             }
         },
         complete: function(){
@@ -191,7 +294,7 @@ function changeUsername(id, username){
             showLoader();
         },
         success: function(resp){
-            if (resp.message = 'success'){
+            if (resp.message === 'success'){
                 if (id === current_user.id){
                     localStorage.setItem('flashMessage', JSON.stringify({
                         message: 'Username was changed successfully',
@@ -204,7 +307,7 @@ function changeUsername(id, username){
                 flashMessage('Username was changed successfully.', 'success', 3000)
             } else {
                 softRefresh()
-                flashMessage('Error changing username for user account. Please try again', 'danger', 3000)
+                flashMessage(resp.error || 'Error changing username for user account. Please try again', 'danger', 6000)
             }
         },
         complete: function(){
@@ -226,23 +329,6 @@ async function isEmployeeIdUnique(id){
         // if registered then not unique
         return !resp.registered;
     } catch (error){
-        console.log('Error checking employe ID '+ error);
-        alert("Failed to check employee ID. Please try again later");
-        return false;
-    }
-}
-async function doesEmployeeExist(id){
-    try {
-        const resp = await $.ajax({
-            url: `/employees/get_employees/${id}`,
-            type: 'GET'
-        });
-        // if registered then not unique
-        if (resp.error) return false;
-        return true;
-    } catch (error){
-        console.log('Error checking employe ID '+ error);
-        alert("Failed to check employee ID. Please try again later");
         return false;
     }
 }
@@ -271,12 +357,12 @@ function populateUserTable(users) {
         const isCurrentUser = Number(user.pk_user_id) === Number(current_user.id);
         const hasForgotPassword = user.forgot_password === 1;
 
-        const adminMark = isAdmin 
-            ? '<i class="fas fa-square-check fa-xl"></i>' 
+        const adminMark = isAdmin
+            ? '<i class="fas fa-square-check fa-xl"></i>'
             : '<i class="fas fa-square-xmark fa-xl"></i>';
 
-        const forgotPasswordIcon = hasForgotPassword 
-            ? '<i class="fas fa-triangle-exclamation fa-lg" title="User has requested a password reset."></i>' 
+        const forgotPasswordIcon = hasForgotPassword
+            ? '<i class="fas fa-triangle-exclamation fa-lg" title="User has requested a password reset."></i>'
             : '';
 
         const forgotPasswordClass = hasForgotPassword ? 'forgot-pass' : '';
@@ -343,9 +429,9 @@ function convertActions(row){
     previous_actions_html = $(row).find('.actions').clone();
 
     $(row).find('.actions').html(`
-        <div class="d-flex w-100 gap-2">
+        <div class="actions-btns">
             <button type="button" class="btn btn-primary btn-sm w-100" id="saveAccount">Save</button>
-            <button type="button" class="btn btn-secondary btn-sm w-100" id="cancelAccount">Cancel</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="cancelAccount">Cancel</button>
         </div>
     `);
 }
@@ -354,54 +440,127 @@ function revertActions(row){
     previous_actions_html = '';
 }
 
-function placeholderRow(){
+function buildEmployeeSelectOptions(employees) {
+    if (!employees || employees.length === 0) {
+        return '<option disabled>No unregistered employees available.</option>';
+    }
+    return employees.map(e => `
+        <option value="${e.pk_employee_id}"
+            data-tokens="${e.first_name} ${e.last_name}"
+            data-content='
+                <div class="option">
+                    <span class="option-employee-id">${e.pk_employee_id}</span>
+                    <span class="option-employee-name">${e.first_name} ${e.last_name}</span>
+                </div>'
+        >${e.pk_employee_id}</option>
+    `).join('');
+}
+
+async function placeholderRow(){
     const tbody = $('#userTableBody');
     const last_row = $(tbody).find('tr').last();
-    const placeholderRow = last_row.clone();
+    const $row = last_row.clone();
 
     //Change data user-id to "new" for identification
-    $(placeholderRow).attr('data-user-id', 'new');
+    $row.attr('data-user-id', 'new');
 
     //Turn fixed fields to placeholders
-    $(placeholderRow).find('.user-id').html('<span class="placeholder col-4"></span>');
-    $(placeholderRow).find('.first-name').html('<span class="placeholder col-6"></span>');
-    $(placeholderRow).find('.last-name').html('<span class="placeholder col-6"></span>');
+    $row.find('.user-id').html('<span class="placeholder col-4"></span>');
+    $row.find('.first-name').html('<span class="placeholder col-6"></span>');
+    $row.find('.last-name').html('<span class="placeholder col-6"></span>');
 
     //Empty values
-    $(placeholderRow).find('.employee-id .editable').text('')
-    $(placeholderRow).find('.username .editable').text('')
+    $row.find('.employee-id .editable').text('');
+    $row.find('.username .editable').text('');
 
     //Turn admin into checkbox
-    $(placeholderRow).find('.admin').html('<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="adminCheckBox" name="adminCheckBox"></div>');
+    $row.find('.admin').html('<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="adminCheckBox" name="adminCheckBox"></div>');
 
     //Turn actions into save/cancel
-    convertActions(placeholderRow)
-    
-    //Add event handler to save cancel buttons
-    $(placeholderRow).find('#saveAccount').on('click', async function(){
+    convertActions($row);
+
+    //Add event handler to save/cancel buttons
+    $row.find('#saveAccount').on('click', async function(){
         const valid = await validateFields();
         if (!valid) return;
-        
+
         $('#confirmPassword').attr('data-bs-target', '#confirmAccount').attr('data-bs-toggle', 'modal');
         $('#passwordModal').modal('toggle');
     });
-    $(placeholderRow).find('#cancelAccount').on('click', function(){
+    $row.find('#cancelAccount').on('click', function(){
         revertChanges('tr[data-user-id="new"]', true);
     });
 
-    last_row.after(placeholderRow);
+    // Skip employee-id in createInputFields — we replace it with a selectpicker below
+    $row.find('.employee-id-div').removeClass('editable');
+    createInputFields($row, 'sm', true, true);
 
-    //Turn editable fields into form controls
-    createInputFields(placeholderRow, 'sm', true, true)
+    // Fetch unregistered employees for the dropdown
+    let employees = [];
+    try {
+        showLoader();
+        employees = await $.ajax({ url: '/users/get_unregistered_employees', type: 'GET' });
+    } catch(e) {
+        console.error('Failed to load unregistered employees', e);
+    } finally {
+        hideLoader();
+    }
+
+    const selectOptions = buildEmployeeSelectOptions(employees);
+    const $selectWrapper = $(`
+        <div class="employee-id-select-wrapper">
+            <select name="employee-id-div" class="selectpicker"
+                data-live-search="${employees.length > 5 ? 'true' : 'false'}"
+                data-live-search-normalize="true"
+                data-live-search-style="contains"
+                data-live-search-placeholder="Search..."
+                data-style="btn-sm btn-outline-custom"
+                data-container="body"
+                required>
+                <option value="">Select employee...</option>
+                <option data-divider="true"></option>
+                ${selectOptions}
+            </select>
+            <div class="invalid-feedback">Please select an employee.</div>
+        </div>
+    `);
+
+    $row.find('.employee-id .employee-id-div').replaceWith($selectWrapper);
+
+    last_row.after($row);
+
+    // Initialise the selectpicker
+    const $select = $row.find('select[name="employee-id-div"]');
+    $select.selectpicker();
+
+    // When an employee is selected update the name placeholder cells
+    $select.on('change', function(){
+        const selectedId = Number($(this).val());
+        const emp = employees.find(e => e.pk_employee_id === selectedId);
+        if (emp) {
+            $row.find('.first-name').text(emp.first_name);
+            $row.find('.last-name').text(emp.last_name);
+        } else {
+            $row.find('.first-name').html('<span class="placeholder col-6"></span>');
+            $row.find('.last-name').html('<span class="placeholder col-6"></span>');
+        }
+    });
 }
 
 //Validates initial employee ID and Username fields
 async function validateFields() {
     const promises = [];
 
-    function invalidate(feedbackDiv, feedback, input){
-        addFeedback(feedbackDiv, feedback, input);
-        return false;
+    // Validate employee select (create account mode)
+    const $employeeSelect = $('#newUserForm select[name="employee-id-div"]');
+    if ($employeeSelect.length) {
+        promises.push((async () => {
+            if (!$employeeSelect.val()) {
+                $employeeSelect.closest('.bootstrap-select').addClass('is-invalid');
+                return false;
+            }
+            return true;
+        })());
     }
 
     $('#newUserForm input').each(function(index, input) {
@@ -410,25 +569,8 @@ async function validateFields() {
         const feedback_div = $(input).siblings().closest('.invalid-feedback');
 
         if (name === 'adminCheckBox') return;
+        if (name === 'employee-id-div') return; // handled by select above
 
-        if (name === 'employee-id-div') {
-            promises.push((async () => {
-                if (!isNumeric(value) || !(Number.isInteger(Number(value)))) {
-                    addFeedback(feedback_div, 'ID must be an integer.', input);
-                    return false;
-                } else if (Number(value) < 0) {
-                    addFeedback(feedback_div, 'ID Must be greater than 0.', input);
-                    return false;
-                } else if (!(await isEmployeeIdUnique(value))) {
-                    addFeedback(feedback_div, 'This ID is already registered.', input);
-                    return false;
-                } else if (!(await doesEmployeeExist(value))) {
-                    addFeedback(feedback_div, 'Employee ID must match an employee record.', input);
-                    return false;
-                }
-                return true;
-            })());
-        }
         if (name === 'username-div') {
             promises.push((async () => {
                 if (!isAlphaNumeric(value)) {
@@ -464,7 +606,7 @@ function revertChanges(selector, remove=false, wrapper){
         } else {
             revertInputFields($(row), true, wrapper)
         }
-        $('#createAccount').removeClass('disabled');
+        setEditing(false);
     }
 }
 
@@ -480,16 +622,17 @@ $('#closeConfirmBtn').on('click', function(){
     $('#confirmPassword').attr('data-bs-target', '#confirmAccount').attr('data-bs-toggle', 'modal');
 });
 
-$('#createAccount').on('click', function(){
-    $(this).addClass('disabled');
-    placeholderRow();
+$('#createAccount').on('click', async function(){
+    if (editing) return;
+    setEditing(true);
+    await placeholderRow();
 });
 
 //Event handler for form submission
 $('#confirmAccountBtn').on('click', function(){
     const form = $('#newUserForm');
     const data = {
-        'employee_id': form.find('input[name="employee-id-div"]').val(),
+        'employee_id': form.find('[name="employee-id-div"]').val(),
         'username': form.find('input[name="username-div"]').val(),
         'admin': form.find('input[name="adminCheckBox"]')[0].checked,
         'password': $('#tempPassword').val()
@@ -505,7 +648,7 @@ $('#userTableBody').on('click', '.actions .fas.fa-trash', function(){
     const employee_id = row.find('.employee-id-div').text();
     const user_id = row.data('user-id');
     const username = row.find('.username-div').text();
-    
+
     modal.data('user-id', user_id);
     modal.find('.modal-title').text('Delete Account?')
     modal.find('.modal-body').empty().append(
@@ -572,11 +715,13 @@ $('#confirmPasswordChangeBtn').on('click', function(){
 });
 //Edit username action event handler
 $('#userTableBody').on('click', '.actions .fas.fa-square-pen', function(){
+    if (editing) return;
+
     const row = $(this).closest('tr');
     const td = $(row).find('.username');
     const old_username = $(td).text();
 
-    $('#createAccount').addClass('disabled');
+    setEditing(true, row);
 
     createInputFields($(td), 'sm', true, true);
     convertActions(row);
@@ -607,4 +752,38 @@ $('#confirmUsernameBtn').on('click', function(){
     const username = $('#confirmUsernameChange').find('.username-new').text();
     const user_id = $('#confirmUsernameChange').find('.user-id').text();
     changeUsername(user_id, username);
+});
+
+// Pending registrations - approve
+$('#pendingTableBody').on('click', '.pending-approve', function(){
+    const row = $(this).closest('tr');
+    const user_id = row.data('user-id');
+    const employee_id = row.find('.employee-id').text();
+    const username = row.find('.username').text();
+    const modal = $('#confirmApproveRegistration');
+    modal.data('user-id', user_id);
+    modal.find('.employee-id').text(employee_id);
+    modal.find('.username').text(username);
+    modal.modal('toggle');
+});
+$('#confirmApproveBtn').on('click', function(){
+    const user_id = $('#confirmApproveRegistration').data('user-id');
+    approvePendingRegistration(user_id);
+});
+
+// Pending registrations - deny
+$('#pendingTableBody').on('click', '.pending-deny', function(){
+    const row = $(this).closest('tr');
+    const user_id = row.data('user-id');
+    const employee_id = row.find('.employee-id').text();
+    const username = row.find('.username').text();
+    const modal = $('#confirmDenyRegistration');
+    modal.data('user-id', user_id);
+    modal.find('.employee-id').text(employee_id);
+    modal.find('.username').text(username);
+    modal.modal('toggle');
+});
+$('#confirmDenyBtn').on('click', function(){
+    const user_id = $('#confirmDenyRegistration').data('user-id');
+    denyPendingRegistration(user_id);
 });

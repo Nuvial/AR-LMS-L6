@@ -1,3 +1,48 @@
+body.shell {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    height: 100vh;
+    overflow: hidden;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.warning-callout.danger {
+    background: rgba(219, 33, 0, 0.14);
+    border-left: 3px solid rgb(226, 38, 38);
+}
+.warning-callout {
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: rgba(219, 143, 0, 0.14);
+    border-left: 3px solid rgb(219, 143, 0);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+.warning-callout i { 
+    color: rgb(219, 143, 0); 
+    margin-right: 0.4rem; 
+}
+.warning-callout strong { 
+    color: rgb(219, 143, 0); 
+    font-size: larger;
+}
+
+main .top-stack {
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
 .square-box {
     width: 30%;
     background-color: var(--bs-secondary-bg);

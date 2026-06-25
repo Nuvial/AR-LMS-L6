@@ -214,8 +214,8 @@
             (data.employees || []).forEach(e => {
                 if (defined.has(e.pk_employee_id)) return;
                 defined.add(e.pk_employee_id);
-                const pos = e.employee_position
-                    ? `<br/><small>${safe(e.employee_position)}</small>`
+                const pos = e.role
+                    ? `<br/><small>${safe(formatRole(e.role))}</small>`
                     : '';
                 const cls = managerOfTeam.has(e.pk_employee_id) ? 'managerNode' : 'employeeNode';
                 lines.push(`emp${e.pk_employee_id}["${safe(e.first_name)} ${safe(e.last_name)}${pos}"]:::${cls}`);

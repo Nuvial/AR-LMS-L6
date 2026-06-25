@@ -16,22 +16,16 @@ const modify = {
         editing = false;
     },
     getDataCell: function(selector){
-        //Helper function to get the data from a table cell
         return $(`div[data-employee-id=${selected_employee_id}]`).find(selector).val();
     },
     updateData: function() {
-        // Iterates through the table rows and updates the new_data object with the current values 
         this.new_data.employees = {
             first_name: this.getDataCell('.employee-first-name'),
             last_name: this.getDataCell('.employee-last-name'),
-            employee_position: this.getDataCell('.employee-position'),
             default_leave_balance: this.getDataCell('.employee-default-leave-bal'),
-            default_sick_leave_balance: this.getDataCell('.employee-default-sick-bal')
-        };
-        this.new_data.stats = {
-            attendance: this.getDataCell('.employee-attendance'),
-            productivity: this.getDataCell('.employee-productivity'),
-            performance: this.getDataCell('.employee-performance')
+            default_sick_leave_balance: this.getDataCell('.employee-default-sick-bal'),
+            contracted_daily_hours: this.getDataCell('.employee-contracted-daily'),
+            contracted_weekly_hours: this.getDataCell('.employee-contracted-weekly')
         };
     },
     setOriginalData: function(){
@@ -39,7 +33,6 @@ const modify = {
         this.original_data = JSON.parse(JSON.stringify(this.new_data));
     },
     saveChanges: function() {
-        // Helper function to ajax UPDATE changes / editing EXISTING record
         function updateChanges(){
             if (!deepEqual(modify.new_data.employees, modify.original_data.employees)){
                 $.ajax({
@@ -48,42 +41,19 @@ const modify = {
                     type: 'PUT',
                     contentType: 'application/json',
                     success: function(resp){
-                        if (resp.message){
+                        if (resp.message === 'success'){
                             $('.modal.show').modal('hide');
                             modify.stopEditing();
                             softRefresh();
-                            flashMessage(resp.message, 'success');
-                            return
-                        } else if (resp.error){
-                            console.error(resp.error)
+                            flashMessage('Employee record updated successfully.', 'success');
+                        } else {
+                            $('.modal.show').modal('hide');
+                            flashMessage(resp.error || 'Failed to update employee. Please try again.', 'danger', 6000);
                         }
                     },
                     error: function(xhr, status, error) {
                         console.error("Could not update Employees table: " + error);
-                        alert("Failed to update employees. Please try again later.");
-                    }
-                });
-            }
-            if (!deepEqual(modify.new_data.stats, modify.original_data.stats)){
-                $.ajax({
-                    url: `/stats/update/${selected_employee_id}`,
-                    data: JSON.stringify(modify.new_data.stats),
-                    type: 'PUT',
-                    contentType: 'application/json',
-                    success: function(resp){
-                        if (resp.message){
-                            $('.modal.show').modal('hide');
-                            modify.stopEditing();
-                            softRefresh();
-                            flashMessage(resp.message, 'success');
-                            return
-                        } else if (resp.error){
-                            console.error(resp.error)
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Could not update EmployeeStats table: " + error);
-                        alert("Failed to update employees. Please try again later.");
+                        flashMessage('Failed to update employee. Please try again later.', 'danger', 6000);
                     }
                 });
             }
@@ -95,43 +65,23 @@ const modify = {
                 type: 'POST',
                 contentType: 'application/json',
                 success: function(resp){
-                    if (resp.employee_id){
-                        createStats(resp.employee_id)
-                    } else if (resp.error){
-                        console.error(resp.error)
+                    if (resp.message === 'success'){
+                        $('.modal.show').modal('hide');
+                        modify.stopEditing();
+                        softRefresh();
+                        flashMessage('Employee added successfully.', 'success');
+                    } else {
+                        $('.modal.show').modal('hide');
+                        flashMessage(resp.error || 'Failed to add employee. Please try again.', 'danger', 6000);
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error("Could not add to Employees table: " + error);
-                    alert("Failed to add to employees. Please try again later.");
-                }
-            });
-        }
-        function createStats(id){
-            $.ajax({
-                url: `/stats/create/${id}`,
-                data: JSON.stringify(modify.new_data.stats),
-                type: 'POST',
-                contentType: 'application/json',
-                success: function(resp){
-                    if (resp.message){
-                        $('.modal.show').modal('hide');
-                        modify.stopEditing();
-                        softRefresh();
-                        flashMessage(resp.message, 'success');
-                        return
-                    } else if (resp.error){
-                        console.error(resp.error)
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error("Could not add to EmployeeStats table: " + error);
-                    alert("Failed to add to stats. Please try again later.");
+                    flashMessage('Failed to add employee. Please try again later.', 'danger', 6000);
                 }
             });
         }
 
-        // If fields not valid, dont continue to ajax
         if (!validateFields()){
             $('.modal.show').modal('hide');
             return
@@ -149,23 +99,33 @@ const modify = {
         $('.modal.show').modal('hide');
     },
     deleteRecord: function() {
+        const selfDelete = Number(selected_employee_id) === Number(current_user.employee_id);
         $.ajax({
             url: `/employees/delete_employee/${selected_employee_id}`,
             type: 'DELETE',
             success: function(resp){
-                if (resp.message){
+                if (resp.message === 'success'){
                     $('.modal.show').modal('hide');
-                    modify.stopEditing();
-                    softRefresh();
-                    flashMessage(resp.message, 'success');
-                    return
-                } else if (resp.error){
-                    console.error(resp.error)
+                    if (selfDelete) {
+                        localStorage.setItem('flashMessage', JSON.stringify({
+                            message: 'Your employee record and associated account have been deleted.',
+                            type: 'success',
+                            length: 3000,
+                        }));
+                        window.location.href = '/';
+                    } else {
+                        modify.stopEditing();
+                        softRefresh();
+                        flashMessage('Employee deleted successfully.', 'success');
+                    }
+                } else {
+                    $('.modal.show').modal('hide');
+                    flashMessage(resp.error || 'Failed to delete employee. Please try again.', 'danger', 6000);
                 }
             },
             error: function(xhr, status, error) {
-                console.error("Could not update Employees table: " + error);
-                alert("Failed to delete employees. Please try again later.");
+                console.error("Could not delete from Employees table: " + error);
+                flashMessage('Failed to delete employee. Please try again later.', 'danger', 6000);
             }
         });
     },
@@ -173,45 +133,28 @@ const modify = {
 };
 
 $(document).ready(async function(){
-    // Ensure calendar view is default
     $('#toggleTableView')[0].checked = false;
 
-    // Begin loading employees data
     await loadEmployees();
 
-    // Initialise elements
     calendar = initCalendar('#calendar', '100%', true);
     initSearch(
-        '#employee-search', 
-        '#employee-records-body tr', 
+        '#employee-search',
+        '#employee-records-body tr',
         [
             {selector: '.employee-name'},
             {selector: '.employee-id'}
         ]
     );
     initTableToggle();
-
-    // Add editing UI dynamically to stats
-    initSaveButtons();
 });
 
 async function softRefresh(){
     await loadEmployees();
-    initSaveButtons();
 }
 
 function initSaveButtons(){
-    const records = $('#employee-records-body tr');
-    records.find('.editing-controls-container').remove();
-    records.each(function(index, record){
-        $(record).find('.employee-name').append(`
-            <div class="editing-controls-container" style="display: none;">
-                <div class="icon-square" onclick="saveRecordModal(event)"><i class="fas fa-floppy-disk"></i></div>
-                <div class="icon-square" onclick="revertRecordModal(event)"><i class="fas fa-rotate-left"></i></div>
-                <div class="icon-square" onclick="deleteRecordModal(event)"><i class="fas fa-trash"></i></div>
-            </div>
-        `)
-    });
+    $('#stats-editing-controls').fadeOut(300);
 }
 
 function saveRecordModal(e) {
@@ -224,28 +167,54 @@ function saveRecordModal(e) {
 }
 function revertRecordModal(e) {
     if (e) e.stopPropagation();
-    if (!modify.modified() && !modify.new) { //Don't ask to unsave changes if no changes made or if not creating a new record.
+    if (!modify.modified() && !modify.new) {
         modify.stopEditing();
         return;
     }
     $('#revertModal').modal('toggle');
 }
-function deleteRecordModal(e) {
+async function deleteRecordModal(e) {
     if (e) e.stopPropagation();
-    // Handle deleting if done when creating new record
     if (modify.new) return $('#revertModal').modal('toggle');
 
-    const employee_name = $(`tr[data-employee-id=${selected_employee_id}]`).find('.employee-name').text().trim();
-    $('#deleteModal #deleteModalEmployee').text(employee_name);
-    $('#deleteModal').modal('toggle');
+    const isSelfDelete = Number(selected_employee_id) === Number(current_user.employee_id);
+
+    if (isSelfDelete) {
+        try {
+            const users = await $.ajax({ url: '/users/get_users', type: 'GET' });
+            const adminCount = users.filter(u => u.admin === 1).length;
+            if (adminCount <= 1) {
+                flashMessage('Cannot delete your account as you are the only admin. Please assign another admin first.', 'danger', 0);
+                return;
+            }
+        } catch (err) {
+            console.error('Failed to check admin count:', err);
+            flashMessage('Failed to verify admin status. Please try again.', 'danger', 6000);
+            return;
+        }
+        $('#deleteWarning .modal-title').html('Delete Your Employee Record?');
+        $('#deleteWarning .modal-body').html(`
+            <div class="warning-callout danger mb-3">
+                <i class="fa-solid fa-circle-exclamation"></i><strong>Warning:</strong> You are about to delete your own employee record.
+            </div>
+            <p>Deleting your employee record will also remove your associated login account. <strong>You will immediately lose access to the application.</strong></p>
+            <p>To regain access, another admin will need to create a new employee profile and login account for you.</p>
+            <p class="mb-0"><strong>This action is irreversible.</strong></p>
+        `);
+        $('#deleteWarning').modal('show');
+    } else {
+        const employee_name = $(`tr[data-employee-id=${selected_employee_id}]`).find('.employee-name').text().trim();
+        $('#deleteModal #deleteModalEmployee').text(employee_name);
+        $('#deleteModal').modal('toggle');
+    }
 }
 $('#saveChangesConfirm').on('click', function(){modify.saveChanges()});
 $('#revertChangesConfirm').on('click', function(){modify.revertChanges()});
 $('#deleteRecordConfirm').on('click', function(){modify.deleteRecord()});
+$('#confirmDeleteBtn').on('click', function(){modify.deleteRecord()});
 
 $('#addRecordBtn').on('click', function() {
     $(this).addClass('disabled');
-    // Find the last employee record row and stats block
     const last_row = $('#employee-records-body tr').last();
     const last_stats = $('#employee-stats-body > .row').last();
 
@@ -261,15 +230,13 @@ $('#addRecordBtn').on('click', function() {
     new_stats.find('.employee-id').text('');
     new_stats.find('.employee-leave-remaining').text('');
     new_stats.find('.employee-sick-remaining').text('');
-    new_stats.find('.employee-stats-recorded').text('');
+    new_stats.find('.id').hide();
 
     last_row.after(new_record);
     last_stats.after(new_stats);
 
     modify.new = true;
-    initSaveButtons();
     new_record.click();
-    
 });
 
 function validateFields(){
@@ -280,7 +247,6 @@ function validateFields(){
         addFeedback(feedbackDiv, feedback, input);
     };
 
-    // Custom field validation for each input.
     $('form#employee-form input').each(function(index, input){
         const value = $(input).val();
         const feedback = $(input).closest('.input-group').find('.invalid-feedback');
@@ -304,48 +270,39 @@ function validateFields(){
             }
         }
 
-        // Position: alphanumeric, length 1-32
-        if (field === 'employee-position') {
-            if (!isAlphaNumeric(value)) {
-                invalidate(feedback, 'Position must be alphanumeric', input);
-            } else if (!isValidLength(value, 0, 33)) {
-                invalidate(feedback, 'Position must be 1-32 characters', input);
-            }
-        }
-
-        // Default Leave Balance: numeric, 0-365
+        // Default Leave Balance: numeric, 0-5000 hours
         if (field === 'employee-default-leave-bal') {
             if (!isNumeric(value)) {
                 invalidate(feedback, 'Leave balance must be numeric', input);
-            } else if (!isValidNumber(Number(value), -1, 366)) {
-                invalidate(feedback, 'Leave balance must be 0-365', input);
+            } else if (!isValidNumber(Number(value), -1, 5001)) {
+                invalidate(feedback, 'Leave balance must be 0-5000 hours', input);
             }
         }
 
-        // Default Sick Leave Balance: numeric, 0-365
+        // Default Sick Leave Balance: numeric, 0-5000 hours
         if (field === 'employee-default-sick-bal') {
             if (!isNumeric(value)) {
                 invalidate(feedback, 'Sick leave balance must be numeric', input);
-            } else if (!isValidNumber(Number(value), -1, 366)) {
-                invalidate(feedback, 'Sick leave balance must be 0-365', input);
+            } else if (!isValidNumber(Number(value), -1, 5001)) {
+                invalidate(feedback, 'Sick leave balance must be 0-5000 hours', input);
             }
         }
 
-        // Attendance, Productivity: numeric, 0-100
-        if (field === 'employee-attendance' || field === 'employee-productivity') {
+        // Contracted Daily Hours: numeric, 0-24 (exclusive)
+        if (field === 'employee-contracted-daily') {
             if (!isNumeric(value)) {
-                invalidate(feedback, 'Value must be numeric', input);
-            } else if (!isValidNumber(Number(value), -1, 101)) {
-                invalidate(feedback, 'Value must be 0-100', input);
+                invalidate(feedback, 'Contracted daily hours must be numeric', input);
+            } else if (!isValidNumber(Number(value), 0, 25)) {
+                invalidate(feedback, 'Contracted daily hours must be between 0 and 24', input);
             }
         }
 
-        // Performance: numeric: 0-10
-        if (field === 'employee-performance'){
+        // Contracted Weekly Hours: numeric, 0-168 (exclusive)
+        if (field === 'employee-contracted-weekly') {
             if (!isNumeric(value)) {
-                invalidate(feedback, 'Value must be numeric', input);
-            } else if (!isValidNumber(Number(value), -1, 11)) {
-                invalidate(feedback, 'Value must be 0-10', input);
+                invalidate(feedback, 'Contracted weekly hours must be numeric', input);
+            } else if (!isValidNumber(Number(value), 0, 169)) {
+                invalidate(feedback, 'Contracted weekly hours must be between 0 and 168', input);
             }
         }
     });
@@ -357,21 +314,19 @@ function validateFields(){
 }
 
 $('#employee-records-body').on('click', 'tr', function() {
-    // Handle selecting employee record
+    if (!$('#stats-editing-controls').length) return;
+
     if (editing){
         if (modify.modified() || modify.new) revertRecordModal();
         else saveRecordModal();
         return;
     };
 
-    const editing_containers = $('.editing-controls-container');
-    const this_editing_container = $(this).find('.editing-controls-container');
     const selected = $(this).data('employee-id') == selected_employee_id;
     $('#addRecordBtn').addClass('disabled');
 
-    editing_containers.hide(300);
     if (selected) {
-        this_editing_container.fadeIn(300);
+        $('#stats-editing-controls').fadeIn(300);
         editing = true;
 
         createInputFields(`#employee-stats-body div[data-employee-id=${selected_employee_id}]`, 'sm', true);
