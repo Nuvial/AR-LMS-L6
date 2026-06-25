@@ -6,210 +6,255 @@ from wtforms.validators import InputRequired, Length
 
 from db import get_db
 
-# Create a user object for flask-login library
+
 class User(UserMixin):
-    def __init__(self, id, employee_id, username, password, admin):
+    def __init__(self, id, employee_id, username, password, role):
         self.id = id
         self.employee_id = employee_id
         self.username = username
         self.password = password
-        self.admin = admin
+        self.role = role  # 'admin' | 'manager' | 'employee'
+
+    @property
+    def admin(self):
+        return self.role == 'admin'
+
+    @property
+    def is_manager(self):
+        return self.role == 'manager'
 
     @staticmethod
     def get(username):
         user_data = getUserData(username)
-
         if user_data:
             return User(
                 user_data['pk_user_id'],
                 user_data['fk_employee_id'],
                 user_data['username'],
                 user_data['password'],
-                user_data['admin']
+                user_data['role']
             )
         return None
 
-# Create forms to be used on login page
+
 class LoginForm(FlaskForm):
-    """Form for user login."""
     username = StringField('Username:', validators=[InputRequired(), Length(min=3)])
     password = PasswordField('Password:', validators=[InputRequired()])
     submit = SubmitField('Login')
 
+
 class RegisterForm(FlaskForm):
-    """Form for user registration."""
     employee_id = IntegerField('Employee ID:', validators=[InputRequired()])
     username = StringField('Username:', validators=[InputRequired(), Length(min=3, max=25)])
-    password = PasswordField('Password:', validators=[InputRequired(), Length(min=6)])
+    password = PasswordField('Password:', validators=[InputRequired(), Length(min=8, max=128)])
     submit = SubmitField('Register')
 
 
+class ForceChangePasswordForm(FlaskForm):
+    password = PasswordField('New Password:', validators=[InputRequired(), Length(min=8, max=128)])
+    confirm_password = PasswordField('Confirm New Password:', validators=[InputRequired()])
+    submit = SubmitField('Change Password')
 
 
-# Helper Functions
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
 
 def getUserData(username):
-    """
-    Helper function to get all user data based on username.
-    """
     db = get_db()
     query = """
-        SELECT * FROM Users
-        WHERE username = ?
+        SELECT u.*, r.name AS role
+        FROM Users u
+        JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+        JOIN Roles r ON e.fk_role_id = r.pk_role_id
+        WHERE u.username = ?
     """
-    values = (username,)
+    return db.execute(query, (username,)).fetchone()
 
-    return db.execute(query, values).fetchone()
 
 def isEmployeeIdRegistered(id):
-    """
-    Helper function to check if an employee ID has already been registered.
-    """
     db = get_db()
-    query = """
-        SELECT username FROM Users
-        WHERE fk_employee_id = ?
-    """
-    values = (id,)
-    user = db.execute(query, values).fetchone()
-    if user:
-        return True
-    return False
+    query = "SELECT username FROM Users WHERE fk_employee_id = ?"
+    return db.execute(query, (id,)).fetchone() is not None
+
 
 def usernameTaken(username):
-    """
-    Helper function to check if a username has been taken already 
-    """
     db = get_db()
-    query = """
-        SELECT username, pk_user_id FROM Users
-        WHERE username = ?
-    """
-    values = (username,)
-    user = db.execute(query, values).fetchone()
-
-    if user:
-        return True
-    return False
+    query = "SELECT pk_user_id FROM Users WHERE username = ?"
+    return db.execute(query, (username,)).fetchone() is not None
 
 
-
-# Models for routes
-
-def registerUser(data):
-    """
-    Creates a record in the Users table for a new account.
-    Args:
-        data (dict): Account data in the format:
-            'employee_id'
-            'username'
-            'hashed_password'
-    """
+def registerUser(data, pending=False, password_reset_required=False):
     try:
-        # Get account details
-        employee_id = data['employee_id']
-        username = data['username']
-        hashed_password = data['hashed_password']
-
-        # Create query
         query = """
-            INSERT INTO Users (fk_employee_id, username, password) 
-            VALUES (?, ?, ?)
+            INSERT INTO Users (fk_employee_id, username, password, pending_confirmation, password_reset_required)
+            VALUES (?, ?, ?, ?, ?)
         """
-        values = (employee_id, username, hashed_password)
+        values = (
+            data['employee_id'],
+            data['username'],
+            data['hashed_password'],
+            1 if pending else 0,
+            1 if password_reset_required else 0,
+        )
 
         db = get_db()
         cursor = db.execute(query, values)
         db.commit()
-
         return {'message': 'success', 'pk_user_id': cursor.lastrowid}
     except Exception as e:
         return {'message': 'error', 'error': e}
 
-def upgradeUser(id):
-    """
-    Upgrades a user ID to an admin account. The route should be protected by an admin-only login.
-    Args:
-        id (int): The User ID to upgrade
-    """
+
+def getPendingUsers():
     try:
+        db = get_db()
         query = """
-            UPDATE Users
-            SET admin = 1
-            WHERE pk_user_id = ?
+            SELECT u.pk_user_id, u.fk_employee_id, u.username,
+                   e.first_name, e.last_name
+            FROM Users u
+            JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+            WHERE u.pending_confirmation = 1
+            ORDER BY u.pk_user_id
         """
-        values = (id,)
+        return [dict(row) for row in db.execute(query).fetchall()]
+    except Exception as e:
+        raise Exception(f"An error occurred: {e}")
+
+
+def confirmRegistration(user_id):
+    try:
+        db = get_db()
+        db.execute(
+            "UPDATE Users SET pending_confirmation = 0 WHERE pk_user_id = ? AND pending_confirmation = 1",
+            (user_id,)
+        )
+        db.commit()
+        return {'message': 'success'}
+    except Exception as e:
+        return {'message': 'error', 'error': str(e)}
+
+
+def denyRegistration(user_id):
+    try:
+        db = get_db()
+        db.execute(
+            "DELETE FROM Users WHERE pk_user_id = ? AND pending_confirmation = 1",
+            (user_id,)
+        )
+        db.commit()
+        return {'message': 'success'}
+    except Exception as e:
+        return {'message': 'error', 'error': str(e)}
+
+
+def validate_upgrade_user(user_id):
+    """
+    Validates that a user can be promoted to admin.
+    Returns an error string if the promotion is not allowed, or None if valid.
+    """
+    db = get_db()
+    if db.execute("""
+        SELECT pk_team_id FROM Team
+        WHERE fk_manager_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
+    """, (user_id,)).fetchone():
+        return 'Cannot promote a team manager to admin. Remove them from team management first.'
+
+    if db.execute("""
+        SELECT fk_team_id FROM Employees e
+        WHERE fk_team_id IS NOT NULL AND pk_employee_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
+    """, (user_id,)).fetchone():
+        return 'Cannot promote a team member to admin. Remove them from the team first.'
+
+    return None
+
+
+def validate_demote_user(user_id):
+    """
+    Validates that a user can be demoted from admin.
+    Returns an error string if the demotion is not allowed, or None if valid.
+    """
+    db = get_db()
+    admin_count = db.execute("""
+        SELECT COUNT(*) as count
+        FROM Users u
+        JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+        JOIN Roles r ON e.fk_role_id = r.pk_role_id
+        WHERE r.name = 'admin'
+    """).fetchone()['count']
+    if admin_count <= 1:
+        return 'Cannot demote the only admin account. Please assign another admin first.'
+    return None
+
+
+def upgradeUser(user_id):
+    """Promote a user to admin by updating their role in Employees."""
+    try:
+        error = validate_upgrade_user(user_id)
+        if error:
+            return {'message': 'error', 'error': error}
 
         db = get_db()
-        db.execute(query, values)
+        db.execute("""
+            UPDATE Employees
+            SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'admin')
+            WHERE pk_employee_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
+        """, (user_id,))
         db.commit()
 
-        return 'success'
+        return {'message': 'success'}
     except Exception as e:
         raise e
 
-def demoteUser(id):
-    """
-    Demotes a user ID to a user account. The route should be protected by an admin-only login.
-    Args:
-        id (int): The User ID to downgrade
-    """
+
+def demoteUser(user_id):
+    """Demote a user back to employee by updating their role in Employees."""
     try:
-        query = """
-            UPDATE Users
-            SET admin = 0
-            WHERE pk_user_id = ?
-        """
-        values = (id,)
+        error = validate_demote_user(user_id)
+        if error:
+            return {'message': 'error', 'error': error}
 
         db = get_db()
-        db.execute(query, values)
+        db.execute("""
+            UPDATE Employees
+            SET fk_role_id = (SELECT pk_role_id FROM Roles WHERE name = 'employee')
+            WHERE pk_employee_id = (SELECT fk_employee_id FROM Users WHERE pk_user_id = ?)
+        """, (user_id,))
         db.commit()
-
-        return 'success'
+        return {'message': 'success'}
     except Exception as e:
         raise e
+
 
 def forgotPassword(id):
-    """
-    Sets the forgot_password attribute for the specified account to 1 (true).
-    Args:
-        id (int): The User ID (not to be confused with employee ID)
-    """
     try:
-        query = """
-            UPDATE Users 
-            SET forgot_password = 1 
-            WHERE pk_user_id = ?
-        """
-        values = (id,)
-
         db = get_db()
-        db.execute(query, values)
+        db.execute("UPDATE Users SET forgot_password = 1 WHERE pk_user_id = ?", (id,))
         db.commit()
-
         return 'success'
     except Exception as e:
         raise e
+
 
 def unForgotPassword(id):
-    """
-    Sets the forgot_password attribute for the specified account to 0 (false). Automatically called if the user requests a password reset - but manages to log in anyway.
-    Args:
-        id (int): The User ID (not to be confused with employee ID)
-    """
     try:
-        query = """
-            UPDATE Users 
-            SET forgot_password = 0
-            WHERE pk_user_id = ?
-        """
-        values = (id,)
-
         db = get_db()
-        db.execute(query, values)
+        db.execute("UPDATE Users SET forgot_password = 0 WHERE pk_user_id = ?", (id,))
         db.commit()
-
         return 'success'
     except Exception as e:
         raise e
+
+
+def getUserDataById(user_id):
+    db = get_db()
+    query = """
+        SELECT u.*, r.name AS role
+        FROM Users u
+        JOIN Employees e ON u.fk_employee_id = e.pk_employee_id
+        JOIN Roles r ON e.fk_role_id = r.pk_role_id
+        WHERE u.pk_user_id = ?
+    """
+    return db.execute(query, (user_id,)).fetchone()
+
+

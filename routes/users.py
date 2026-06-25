@@ -1,159 +1,273 @@
-from flask import request, jsonify, Blueprint, render_template
+import re
+
+from flask import request, jsonify, Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 from flask_bcrypt import Bcrypt
 
-from .models.users import getUsers, deleteUser, changePassword, changeUsername
-from .models.auth import isEmployeeIdRegistered, usernameTaken, registerUser, upgradeUser, demoteUser
-from .auth import admin_required
+from .models.users import getUsers, deleteUser, changePassword, changeUsername, isUserInManagerTeam, getUnregisteredEmployees, validate_password, getUserPasswordHash
+from .models.auth import isEmployeeIdRegistered, usernameTaken, registerUser, upgradeUser, demoteUser, getPendingUsers, confirmRegistration, denyRegistration
+from .models.employees import get_employees
+from .auth import admin_required, admin_or_manager_required
 
 users = Blueprint('users', __name__)
 bcrypt = Bcrypt()
 
+_USERNAME_RE = re.compile(r'^[a-zA-Z0-9]+$')
+
+def _validate_username(username):
+    """Returns an error string or None if valid."""
+    if not username or not _USERNAME_RE.match(str(username)):
+        return 'Username must be alphanumeric.'
+    if not (3 <= len(str(username)) <= 25):
+        return 'Username must be between 3 and 25 characters.'
+    return None
+
+
 @users.route('/')
 @login_required
 def index():
-    return render_template('pages/users.html', active_page='modify_login')
+    if (current_user.admin or current_user.is_manager):
+        return render_template('pages/users.html', active_page='modify_login')
+    return redirect(url_for('users.settings'))
+
+@users.route('/settings')
+@login_required
+def settings():
+    return render_template('pages/profile-settings.html', active_page='profile_settings')
+
+@users.route('/get_users/self')
+@login_required
+def get_current_user():
+    return getEmployeesRoute(current_user.id)
 
 @users.route('/get_users', methods=['GET'])
 @users.route('/get_users/<int:user_id>', methods=['GET'])
 @login_required
 def getEmployeesRoute(user_id=None):
-    """
-    Route to get all or specific user/s.
-    Args:
-        user_id (int, optional): User ID to get. If not provided, gets all users.
-    """
     if request.method == 'GET':
-        if current_user.admin:
-            users = getUsers(user_id)
+        if current_user.admin or current_user.is_manager:
+            users_data = getUsers(user_id)
         else:
-            users = getUsers(current_user.id)
-        
-        if users:
-            return jsonify(users), 200
+            users_data = getUsers(current_user.id)
+
+        if users_data:
+            return jsonify(users_data)
         else:
-            return jsonify({"error": "No employees found"}), 404
+            return jsonify({'message': 'error', 'error': 'No users found'})
 
 @users.route('/get_users/is_registered/<int:employee_id>', methods=['GET'])
+@login_required
 def getIsRegisteredRoute(employee_id):
-    """
-    Route to check if an employee id is already registered.
-    Args:
-        user_id (int): User ID to check.
-    """
-    if request.method == 'GET':
-        registered = isEmployeeIdRegistered(employee_id)
-        return jsonify({'registered': registered})
+    registered = isEmployeeIdRegistered(employee_id)
+    return jsonify({'registered': registered})
 
 @users.route('/get_users/username_taken', methods=['GET'])
+@login_required
 def getUsernameTakenRoute():
-    """
-    Route to check if a username is already registered.
-    Args:
-        username (str): Username to check.
-    """
-    if request.method == 'GET':
-        username = request.args.get('username')
-        taken = usernameTaken(username)
-        return jsonify({'registered': taken})
-    
+    username = request.args.get('username')
+    taken = usernameTaken(username)
+    return jsonify({'registered': taken})
+
 @users.route('/add_user', methods=['POST'])
 @login_required
 @admin_required
 def addUser():
-    """
-    Route to add a user from the modify login page
-    """
     args = request.get_json()
-    if (args):
-        employee_id = args['employee_id']
-        username = args['username']
-        admin = args['admin']
-        hashed_password = bcrypt.generate_password_hash(args['password']).decode('utf-8')
+    if not args:
+        return jsonify({'message': 'error', 'error': 'Missing request body'})
 
-        register = registerUser({
-            'employee_id': employee_id,
-            'username': username,
-            'hashed_password': hashed_password
-        })
+    employee_id = args.get('employee_id')
+    username = args.get('username')
+    password = args.get('password')
+    admin = args.get('admin', False)
 
-        user_id = register['pk_user_id']
-        if admin == True:
-            upgradeUser(user_id)
-        
-        if register['message'] == 'success':
-            return jsonify({'message': 'success'})
-        return jsonify({'message': 'error'})
+    if not employee_id or not username or not password:
+        return jsonify({'message': 'error', 'error': 'Missing required fields'})
+
+    username_err = _validate_username(username)
+    if username_err:
+        return jsonify({'message': 'error', 'error': username_err})
+
+    password_errs = validate_password(str(password))
+    if password_errs:
+        return jsonify({'message': 'error', 'error': password_errs[0]})
+
+    if not get_employees(int(employee_id)):
+        return jsonify({'message': 'error', 'error': 'Employee ID does not exist'})
+
+    if isEmployeeIdRegistered(int(employee_id)):
+        return jsonify({'message': 'error', 'error': 'This employee already has an account'})
+
+    if usernameTaken(str(username)):
+        return jsonify({'message': 'error', 'error': 'Username is already taken'})
+
+    hashed_password = bcrypt.generate_password_hash(str(password)).decode('utf-8')
+    register = registerUser({
+        'employee_id': int(employee_id),
+        'username': str(username),
+        'hashed_password': hashed_password
+    }, password_reset_required=True)
+
+    if register['message'] != 'success':
+        return jsonify({'message': 'error', 'error': 'Failed to create account'})
+
+    if admin:
+        upgrade = upgradeUser(register['pk_user_id'])
+        if upgrade['message'] != 'success':
+            return jsonify({'message': 'error', 'error': upgrade.get('error', 'Failed to upgrade account to admin')})
+
+    return jsonify({'message': 'success'})
 
 @users.route('/promote_user/<int:user_id>', methods=['PUT'])
 @login_required
 @admin_required
 def promoteUserRoute(user_id):
-    """
-    Route to promote a user from the modify login page
-    """
     if request.method == 'PUT':
         upgrade = upgradeUser(user_id)
-        if upgrade == 'success':
-            return {'message': 'success'}
+        if upgrade['message'] == 'success':
+            return jsonify({'message': 'success'})
         else:
-            return {'message': 'error'}
-        
+            return jsonify({'message': 'error', 'error': upgrade['error']})
+
 @users.route('/demote_user/<int:user_id>', methods=['PUT'])
 @login_required
 @admin_required
 def demoteUserRoute(user_id):
-    """
-    Route to demote a user from the modify login page
-    """
     if request.method == 'PUT':
         demote = demoteUser(user_id)
-        if demote == 'success':
-            return {'message': 'success'}
+        if demote['message'] == 'success':
+            return jsonify({'message': 'success'})
         else:
-            return {'message': 'error'}
+            return jsonify({'message': 'error', 'error': demote['error']})
+
+@users.route('/delete_user/self', methods=['DELETE'])
+@login_required
+def deleteUserSelf():
+    if request.method == 'DELETE':
+        delete = deleteUser(current_user.id)
+        if delete['message'] == 'success':
+            return jsonify({'message': 'success'})
+        else:
+            return jsonify({'message': 'error', 'error': delete['error']})
 
 @users.route('/delete_user/<int:user_id>', methods=['DELETE'])
 @login_required
-@admin_required
+@admin_or_manager_required
 def deleteUserRoute(user_id):
-    """
-    Route to delete a user from the modify login page
-    """
     if request.method == 'DELETE':
+        if not current_user.admin and not isUserInManagerTeam(user_id, current_user.employee_id):
+            return jsonify({'message': 'error', 'error': 'You can only delete accounts for employees in your team.'})
         delete = deleteUser(user_id)
-        if delete == 'success':
-            return {'message': 'success'}
+        if delete['message'] == 'success':
+            return jsonify({'message': 'success'})
         else:
-            return {'message': 'error'}
+            return jsonify({'message': 'error', 'error': delete['error']})
 
 @users.route('/change_password/<int:user_id>', methods=['PUT'])
 @login_required
 def changePasswordRoute(user_id):
-    """
-    Route to change a user password from the modify login page
-    """
+    if request.method == 'PUT':
+        if not current_user.admin and user_id != current_user.id:
+            if not current_user.is_manager or not isUserInManagerTeam(user_id, current_user.employee_id):
+                return jsonify({'message': 'error', 'error': 'You can only change passwords for employees in your team.'})
+
+        data = request.get_json()
+        if not data or not data.get('password'):
+            return jsonify({'message': 'error', 'error': 'Missing password'})
+
+        current_hash = getUserPasswordHash(user_id)
+        password_errs = validate_password(data['password'], current_hash=current_hash)
+        if password_errs:
+            return jsonify({'message': 'error', 'error': password_errs[0]})
+
+        hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+        reset_required = user_id != current_user.id
+        change = changePassword(user_id, hashed_password, reset_required=reset_required)
+        if change == 'success':
+            return jsonify({'message': 'success'})
+        else:
+            return jsonify({'message': 'error', 'error': 'Failed to change password'})
+
+@users.route('/change_username/self', methods=['PUT'])
+@login_required
+def changeUsernameSelf():
     if request.method == 'PUT':
         data = request.get_json()
-        hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-        change = changePassword(user_id, hashed_password)
+        if not data or not data.get('username'):
+            return jsonify({'message': 'error', 'error': 'Missing username'})
+
+        username = data['username']
+
+        username_err = _validate_username(username)
+        if username_err:
+            return jsonify({'message': 'error', 'error': username_err})
+
+        if usernameTaken(username) and username != current_user.username:
+            return jsonify({'message': 'error', 'error': 'Username is already taken'})
+
+        change = changeUsername(current_user.id, username)
         if change == 'success':
-            return {'message': 'success'}
+            return jsonify({'message': 'success'})
         else:
-            return {'message': 'error'}
+            return jsonify({'message': 'error', 'error': 'Failed to change username'})
+
+@users.route('/get_unregistered_employees', methods=['GET'])
+@login_required
+@admin_required
+def getUnregisteredEmployeesRoute():
+    employees = getUnregisteredEmployees()
+    return jsonify(employees)
+
+@users.route('/pending_registrations', methods=['GET'])
+@login_required
+@admin_required
+def getPendingRegistrationsRoute():
+    pending = getPendingUsers()
+    return jsonify(pending)
+
+@users.route('/confirm_registration/<int:user_id>', methods=['PUT'])
+@login_required
+@admin_required
+def confirmRegistrationRoute(user_id):
+    result = confirmRegistration(user_id)
+    if result['message'] == 'success':
+        return jsonify({'message': 'success'})
+    return jsonify({'message': 'error', 'error': result.get('error', 'Failed to confirm registration')})
+
+@users.route('/deny_registration/<int:user_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def denyRegistrationRoute(user_id):
+    result = denyRegistration(user_id)
+    if result['message'] == 'success':
+        return jsonify({'message': 'success'})
+    return jsonify({'message': 'error', 'error': result.get('error', 'Failed to deny registration')})
 
 @users.route('/change_username/<int:user_id>', methods=['PUT'])
 @login_required
 def changeUsernameRoute(user_id):
-    """
-    Route to change a username from the modify login page
-    """
     if request.method == 'PUT':
+        if not current_user.admin and user_id != current_user.id:
+            if not current_user.is_manager or not isUserInManagerTeam(user_id, current_user.employee_id):
+                return jsonify({'message': 'error', 'error': 'You can only change usernames for employees in your team.'})
+
         data = request.get_json()
+        if not data or not data.get('username'):
+            return jsonify({'message': 'error', 'error': 'Missing username'})
+
         username = data['username']
+
+        username_err = _validate_username(username)
+        if username_err:
+            return jsonify({'message': 'error', 'error': username_err})
+
+        target_users = getUsers(user_id)
+        current_username = target_users[0]['username'] if target_users else None
+        if usernameTaken(username) and username != current_username:
+            return jsonify({'message': 'error', 'error': 'Username is already taken'})
 
         change = changeUsername(user_id, username)
         if change == 'success':
-            return {'message': 'success'}
+            return jsonify({'message': 'success'})
         else:
-            return {'message': 'error'}
+            return jsonify({'message': 'error', 'error': 'Failed to change username'})

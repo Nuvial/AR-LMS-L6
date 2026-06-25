@@ -3,34 +3,80 @@ name: build-and-publish
 on:
   push:
     branches: [main, test]
+  pull_request:
+    branches: [main, test]
 
 permissions:
   contents: read
   packages: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      FLASK_SECRET_KEY: test-secret-key-not-used-in-production
+      APP_ENVIRONMENT: test
+      APP_HOST: local
+      HIBP_ENABLED: "false"
+    steps:
+      - name: Get the code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests with coverage
+        run: pytest --cov --cov-fail-under=68
+
+      - name: Bandit scan
+        run: bandit -c pyproject.toml -r . -ll
+
+      - name: Dependency vulnerability scan (pip-audit)
+        run: pip-audit -r requirements.txt
+
+  deploy-worker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+      
+      - name: Wranger action
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: .cloudflare
+          command: ${{ github.ref_name == 'main' && 'deploy' || 'versions upload' }}
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     env:
       TARGET_RENDER_URL: ${{ github.ref_name == 'main' && secrets.RENDER_DEPLOY_HOOK_PRD  || secrets.RENDER_DEPLOY_HOOK_TEST }}
     steps:
       - name: Get the code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-      
+
       - name: Log in to GHCR
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d  # v3.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build and push image
         uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0  # v5.3.0
         with:
           context: .
           push: true
           tags: ghcr.io/nuvial/ar-lms-l6:${{ github.ref_name == 'main' && 'latest' || 'test' }}
-      
+
       - name: Deploy to render
         run: |
           curl -X POST \

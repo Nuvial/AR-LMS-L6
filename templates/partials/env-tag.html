@@ -2,11 +2,13 @@
 
 <div class="top-stack">
     <div class="tag-row">
+        {% if not current_user.id %}
         <div class="return" style="display: none;">
             <button type="button" class="btn btn-primary py-0" onclick="history.back()">
                 <i class="fas fa-arrow-left fa-sm"></i> Back
             </button>
         </div>
+        {% endif %}
         <div class="env-tag" data-env="{{ env }}" data-host="{{ env_host }}">
             <div class="left"></div>
             <div class="host">

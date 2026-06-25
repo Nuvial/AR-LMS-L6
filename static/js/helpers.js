@@ -1,4 +1,18 @@
 /**
+ * Maps a role name from the database to a human-readable display label.
+ * @param {string} role - Raw role name ('admin', 'manager', 'employee').
+ * @returns {string} Display label.
+ */
+function formatRole(role) {
+    const labels = {
+        'admin': 'Administrator',
+        'manager': 'Team Manager',
+        'employee': 'Employee'
+    };
+    return labels[role] || role;
+}
+
+/**
  * Show spinner loader with whole screen backdrop.
  */
 function showLoader(){
@@ -128,12 +142,7 @@ function initSearch(form, search_container, attributes){
             });
             
             const matches = search.every(term => record_text.includes(term));
-
-            if (matches) {
-                $(record).show();
-            } else {
-                $(record).hide();
-            }
+            $(record).toggleClass('search-hidden', !matches);
         });
     });
 }
@@ -143,7 +152,7 @@ function initSearch(form, search_container, attributes){
  * 
  * @param {Object} obj1 
  * @param {Object} obj2 
- * @returns 
+ * @returns {Boolean}
  */
 function deepEqual(obj1, obj2) {
     if (obj1 === obj2) return true;
@@ -167,6 +176,18 @@ function deepEqual(obj1, obj2) {
 }
 
 /**
+ * Adds dynamic feedback to an `<input>` element during form validation.
+ * 
+ * @param {HTMLElement} element - The feedback element to show the feedback text on. This is typically an empty div with the class `invalid-feedback`.
+ * @param {String} feedback -  The feedback text to display.
+ * @param {HTMLElement} input -  The HTML input element to add the `is-invalid` class to.
+ */
+function addFeedback(element, feedback, input){
+    $(element).text(feedback);
+    $(input).addClass('is-invalid');
+}
+
+/**
  * Turns regular element text fields into input fields preserving the current class list and any
  * units.
  * 
@@ -180,7 +201,9 @@ function createInputFields(selector, size='sm', copy_classes=false, required=fal
         const classes = copy_classes 
                         ? $(field).attr('class')
                         : '';
-        const [value, unit] = !(classes.includes('name'))
+        // Name fields are treated as a single value (no unit suffix)
+        const isSingleValue = classes.includes('name');
+        const [value, unit] = !isSingleValue
                         ? $(field).text().trim().split(' ')
                         : [$(field).text().trim(), ''];
         const isRequired = required === true 
@@ -191,7 +214,7 @@ function createInputFields(selector, size='sm', copy_classes=false, required=fal
             <div class="input-group input-group-${size} mb-1 has-validation">
                 <input name="${first_class}" class="bs form-control ${classes}" value="${value}" ${isRequired}>
         `
-        if (unit && isAlphaNumeric(unit) && !(classes.includes('name'))){
+        if (unit && isAlphaNumeric(unit) && !isSingleValue){
             input += `<span class="bs input-group-text">${unit}</span>`
         }
         input += `
@@ -237,12 +260,28 @@ function isValidLength(str, min, max){
     return (str.length > min) && (str.length < max)
 }
 /**
- * Simple check to test if a string is alpha numeric
+ * Regex check to see if a string is a valid team name.
  * @param {String} str 
+ * @returns {Boolean}
+ */
+function isValidTeamName(str){
+    return /^[a-zA-Z0-9][a-zA-Z0-9 _-]{1,48}[a-zA-Z0-9]$/.test(str);
+}
+/**
+ * Simple check to test if a string is alpha numeric
+ * @param {String} str
  * @returns {Boolean}
  */
 function isAlphaNumeric(str) {
     return /^[a-z0-9]+$/i.test(str);
+}
+/**
+ * Check if a string is a valid position name (letters, numbers, and spaces; no leading/trailing spaces)
+ * @param {String} str
+ * @returns {Boolean}
+ */
+function isValidPosition(str) {
+    return /^[a-zA-Z0-9][a-zA-Z0-9 ]*$/.test(str.trim()) && str.trim().length > 0;
 }
 /**
  * Simple check if a string contains only numbers (0-9)

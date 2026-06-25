@@ -1,0 +1,135 @@
+.main-content-wrapper {
+    display: flex;
+    flex: 1 0 auto;
+    min-height: 0;
+    padding: 2rem 0 2rem;
+    justify-content: center;
+    align-items: flex-start;
+}
+.main-content-wrapper .settings-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: 700px;
+}
+
+.settings-container .card-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.settings-container .card-header .user-id {
+    flex: 1;
+}
+.settings-container .card-header .card-title {
+    display: flex;
+    flex: 2;
+    justify-content: center;
+}
+.settings-container .card-body {
+    min-height: 0;
+    overflow: auto;
+}
+
+
+.edit-container {
+    display: flex;
+    flex: 1;
+    justify-content: end;
+    align-items: center;
+    gap: 8px;
+}
+.edit-container .edit {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    align-items: center;
+    transition: background-color 0.15s;
+}
+.edit-container:not(.editing) .save,
+.edit-container:not(.editing) .cancel {
+    display: none;
+}
+.edit-container.editing .edit{
+    display: none;
+}
+.edit-container.editing .save,
+.edit-container.editing .cancel {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    gap: 12px;
+    align-items: center;
+    transition: background-color 0.15s;
+}
+
+.editable:not(:disabled) {
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+.editable {
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+#profileForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+#profileForm .section {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+}
+.section .left-section {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+}
+.section .left-section .profile-picture-container {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    min-width: 80px;
+    min-height: 80px;
+}
+.section .left-section .profile-picture {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: orange;
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+}
+.section .left-section .profile-picture i {
+    font-size: 40px;
+    color: black;
+}
+.section .left-section .heading {
+    position: sticky;
+    top: 0;
+    font-weight: bold;
+    font-size: xx-large;
+    text-align: center;
+}
+
+.section .right-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 2;
+}
+.section .right-section .input-row {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+}
+
+#deleteWarning .warning-header {
+    text-align: center;
+}
