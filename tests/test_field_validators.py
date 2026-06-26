@@ -1,27 +1,9 @@
-"""
-Unit tests — Layer 1 of the test plan (server-side field validators).
-
-These validators were extracted from the request handlers into standalone,
-side-effect-free helpers so they can be exercised in isolation:
-
-  - routes.employees._validate_employee_fields  (name / balance / hours rules)
-  - routes.leave._validate_leave_request        (leave type / date / hours rules)
-  - routes.users._validate_username             (alphanumeric / length rules)
-
-Each returns an error string when input is invalid, or None when it is valid.
-Testing them directly is the cheapest place to prove the application's input
-contract holds, independent of any route, session or database.
-"""
 import pytest
 
 from routes.employees import _validate_employee_fields
 from routes.leave import _validate_leave_request
 from routes.users import _validate_username
 
-
-# ===========================================================================
-# _validate_employee_fields
-# ===========================================================================
 
 def _valid_employee():
     """A fully valid employee payload; individual tests mutate one field."""
