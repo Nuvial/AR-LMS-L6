@@ -42,7 +42,7 @@ def make_hash():
 
 class TestValidatePasswordLength:
     """
-    Minimum 8 characters, maximum 128 characters.
+    Minimum 15 characters, maximum 128 characters.
     """
 
     def test_empty_string_is_rejected(self):
@@ -57,15 +57,15 @@ class TestValidatePasswordLength:
 
     def test_seven_chars_below_minimum_is_rejected(self):
         errors = validate_password('Abc123!')
-        assert any('8' in e for e in errors), \
+        assert any('15' in e for e in errors), \
             f'Seven-char password should fail minimum-length check; got: {errors}'
 
-    def test_eight_chars_meets_minimum(self):
+    def test_fifteen_chars_meets_minimum(self):
         # HIBP mocked to 0 so length is the only variable
         with patch('routes.models.users._check_hibp', return_value=0):
-            errors = validate_password('Abc1234!')
+            errors = validate_password('Abc1234!Defgh56')
         assert errors == [], \
-            f'Eight-character password should pass all checks; got: {errors}'
+            f'Fifteen-character password should pass all checks; got: {errors}'
 
     def test_128_chars_meets_maximum(self):
         pw = 'A' * 120 + 'b1!@#456'
@@ -83,7 +83,7 @@ class TestValidatePasswordLength:
     def test_return_type_is_always_list(self):
         with patch('routes.models.users._check_hibp', return_value=0):
             assert isinstance(validate_password(''), list)
-            assert isinstance(validate_password('ValidPass1!'), list)
+            assert isinstance(validate_password('ValidPass1!2345'), list)
 
     def test_multiple_errors_not_returned_for_empty(self):
         # empty check returns immediately with one error
@@ -99,21 +99,21 @@ class TestValidatePasswordReuse:
     """
 
     def test_same_password_as_current_hash_is_rejected(self, make_hash):
-        password = 'OriginalPass1!'
+        password = 'OriginalPass12!'
         current_hash = make_hash(password)
         errors = validate_password(password, current_hash=current_hash)
         assert errors, 'Re-using the current password must be rejected'
         assert any('different' in e.lower() or 'current' in e.lower() for e in errors)
 
     def test_different_password_from_current_hash_is_accepted(self, make_hash):
-        current_hash = make_hash('OldPass123!')
+        current_hash = make_hash('OldPass1234567!')
         with patch('routes.models.users._check_hibp', return_value=0):
-            errors = validate_password('NewPass456!', current_hash=current_hash)
+            errors = validate_password('NewPass456!ABCD', current_hash=current_hash)
         assert errors == [], f'A new password differing from the hash should pass; got: {errors}'
 
     def test_no_current_hash_skips_reuse_check(self):
         with patch('routes.models.users._check_hibp', return_value=0):
-            errors = validate_password('FreshPass1!', current_hash=None)
+            errors = validate_password('FreshPass1!2345', current_hash=None)
         assert errors == []
 
     def test_reuse_check_runs_before_hibp(self, make_hash):
@@ -121,7 +121,7 @@ class TestValidatePasswordReuse:
         If the password matches the current hash, no HIBP call should be made
         (errors list is non-empty, short-circuiting the HIBP branch).
         """
-        password = 'OriginalPass1!'
+        password = 'OriginalPass12!'
         current_hash = make_hash(password)
 
         with patch('routes.models.users._check_hibp') as mock_hibp:
@@ -142,7 +142,7 @@ class TestValidatePasswordHIBP:
         # (the test suite disables it globally to stay offline).
         with patch('routes.models.users._HIBP_ENABLED', True), \
                 patch('routes.models.users._check_hibp', return_value=1):
-            errors = validate_password('ValidFormat1!')
+            errors = validate_password('ValidFormat1!23')
         assert errors, 'Password found in breach database must be rejected'
         assert any(
             word in e.lower()
@@ -153,13 +153,13 @@ class TestValidatePasswordHIBP:
     def test_breach_count_appears_in_error_message(self):
         with patch('routes.models.users._HIBP_ENABLED', True), \
                 patch('routes.models.users._check_hibp', return_value=9_999):
-            errors = validate_password('ValidFormat1!')
+            errors = validate_password('ValidFormat1!23')
         assert any('9,999' in e or '9999' in e for e in errors), \
             f'Breach count should appear in the error message; got: {errors}'
 
     def test_zero_breach_count_means_password_is_accepted(self):
         with patch('routes.models.users._check_hibp', return_value=0):
-            errors = validate_password('UniquePass99!')
+            errors = validate_password('UniquePass99!12')
         assert errors == []
 
     def test_hibp_unreachable_fails_open(self):
@@ -171,7 +171,7 @@ class TestValidatePasswordHIBP:
             'routes.models.users._check_hibp',
             side_effect=RuntimeError('HIBP unreachable: timeout'),
         ):
-            errors = validate_password('ValidFormat1!')
+            errors = validate_password('ValidFormat1!23')
         assert errors == [], \
             f'HIBP unavailability must not reject the password; got: {errors}'
 

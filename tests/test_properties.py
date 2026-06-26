@@ -96,16 +96,16 @@ class TestEmployeeBalanceProperties:
 class TestPasswordLengthProperties:
 
     @settings(max_examples=50)
-    @given(st.text(min_size=8, max_size=128))
-    def test_any_8_to_128_char_password_is_accepted(self, password):
+    @given(st.text(min_size=15, max_size=128))
+    def test_any_15_to_128_char_password_is_accepted(self, password):
         with patch("routes.models.users._check_hibp", return_value=0):
             assert validate_password(password) == []
 
-    @given(st.text(min_size=1, max_size=7))
-    def test_any_password_under_8_chars_is_rejected(self, password):
+    @given(st.text(min_size=1, max_size=14))
+    def test_any_password_under_15_chars_is_rejected(self, password):
         errors = validate_password(password)
         assert errors, "Sub-minimum password must be rejected"
-        assert any("8" in e for e in errors)
+        assert any("15" in e for e in errors)
 
     @given(st.text(min_size=129, max_size=400))
     def test_any_password_over_128_chars_is_rejected(self, password):

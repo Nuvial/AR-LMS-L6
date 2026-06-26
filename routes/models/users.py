@@ -35,8 +35,7 @@ def _check_hibp(password):
     try:
         with urllib.request.urlopen(req, timeout=_HIBP_TIMEOUT) as resp:  # nosec B310
             # URL is always https://api.pwnedpasswords.com/range/<5-hex-chars>;
-            # the scheme is hardcoded and the path suffix is our own SHA-1
-            # output — no user input can introduce a file:/ or custom scheme.
+            # the scheme is hardcoded and the path suffix is the own SHA-1
             if resp.status != 200:
                 raise RuntimeError(f'HIBP returned HTTP {resp.status}')
             body = resp.read().decode('utf-8')
@@ -62,8 +61,8 @@ def validate_password(password, current_hash=None):
     if not password:
         errors.append('Password is required.')
         return errors
-    if len(password) < 8:
-        errors.append('Password must be at least 8 characters.')
+    if len(password) < 15:
+        errors.append('Password must be at least 15 characters.')
     if len(password) > 128:
         errors.append('Password must not exceed 128 characters.')
     if current_hash and not errors:

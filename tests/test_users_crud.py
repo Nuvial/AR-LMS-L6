@@ -82,7 +82,7 @@ class TestAddUser:
             json={
                 "employee_id": 3,
                 "username": "cbridge",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         assert resp.status_code == 200
@@ -107,7 +107,7 @@ class TestAddUser:
             json={
                 "employee_id": 3,
                 "username": "bad user!",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         assert resp.status_code == 200
@@ -119,7 +119,7 @@ class TestAddUser:
             json={
                 "employee_id": 9999,
                 "username": "nobody",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         assert resp.status_code == 200
@@ -131,7 +131,7 @@ class TestAddUser:
             json={
                 "employee_id": 1,
                 "username": "dupeacc",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         assert resp.status_code == 200
@@ -143,7 +143,7 @@ class TestAddUser:
             json={
                 "employee_id": 3,
                 "username": "admin",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         assert resp.status_code == 200
@@ -155,7 +155,7 @@ class TestAddUser:
             json={
                 "employee_id": 3,
                 "username": "cbridge",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
                 "admin": True,
             },
         )
@@ -193,7 +193,7 @@ class TestPromoteAndDemoteUser:
         )
         admin_client.post(
             "/users/add_user",
-            json={"employee_id": 3, "username": "emp3", "password": "Passw0rdOK"},
+            json={"employee_id": 3, "username": "emp3", "password": "Passw0rdOK!1234"},
         )
 
         users = admin_client.get("/users/get_users").get_json()
@@ -228,7 +228,7 @@ class TestChangePassword:
     def test_admin_changes_own_password(self, admin_client):
         resp = admin_client.put(
             "/users/change_password/1",
-            json={"password": "NewPassw0rd!"},
+            json={"password": "NewPassw0rd!1234"},
         )
         assert resp.status_code == 200
         assert resp.get_json()["message"] == "success"
@@ -236,7 +236,7 @@ class TestChangePassword:
     def test_user_changes_own_password(self, user_client):
         resp = user_client.put(
             "/users/change_password/2",
-            json={"password": "NewPassw0rd!"},
+            json={"password": "NewPassw0rd!1234"},
         )
         assert resp.status_code == 200
         assert resp.get_json()["message"] == "success"
@@ -249,7 +249,7 @@ class TestChangePassword:
     def test_user_cannot_change_others_password(self, user_client):
         resp = user_client.put(
             "/users/change_password/1",
-            json={"password": "NewPassw0rd!"},
+            json={"password": "NewPassw0rd!1234"},
         )
         assert resp.status_code == 200
         assert resp.get_json()["message"] == "error"
@@ -319,7 +319,7 @@ class TestUnregisteredAndPendingUsers:
             data={
                 "employee_id": 3,
                 "username": "cbridge",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         pending = admin_client.get("/users/pending_registrations").get_json()
@@ -336,7 +336,7 @@ class TestUnregisteredAndPendingUsers:
             data={
                 "employee_id": 4,
                 "username": "kbuckley",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         pending = admin_client.get("/users/pending_registrations").get_json()

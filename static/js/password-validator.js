@@ -1,4 +1,4 @@
-const PASSWORD_MIN = 8;
+const PASSWORD_MIN = 15;
 const PASSWORD_MAX = 128;
 
 /**

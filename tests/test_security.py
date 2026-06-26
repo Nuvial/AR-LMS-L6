@@ -121,7 +121,7 @@ class TestPasswordStorage:
     def test_newly_created_user_password_is_hashed(self, app, admin_client):
         resp = admin_client.post(
             "/users/add_user",
-            json={"employee_id": 3, "username": "newaccount", "password": "Testing1234"},
+            json={"employee_id": 3, "username": "newaccount", "password": "TestingPass12345"},
         )
         assert resp.get_json()["message"] == "success"
 

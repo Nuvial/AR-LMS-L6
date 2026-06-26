@@ -99,6 +99,12 @@ def register():
     if form.validate_on_submit():
         employee_id = form.employee_id.data
         username = form.username.data
+
+        password_errs = validate_password(form.password.data)
+        if password_errs:
+            flash(password_errs[0], 'danger')
+            return render_template('pages/register.html', register_form=form)
+
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
 
         #Check if username already exists

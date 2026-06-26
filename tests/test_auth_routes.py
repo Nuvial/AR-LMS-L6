@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from conftest import login
 
 
@@ -95,7 +96,7 @@ class TestForceChangePassword:
 
         resp = client.post(
             "/force_change_password",
-            data={"password": "NewPassw0rd!", "confirm_password": "Different1!"},
+            data={"password": "NewPassw0rd!1234", "confirm_password": "Different1!"},
         )
         assert resp.status_code == 200
         assert b"do not match" in resp.data
@@ -132,7 +133,7 @@ class TestForceChangePassword:
 
         resp = client.post(
             "/force_change_password",
-            data={"password": "BrandNew99!", "confirm_password": "BrandNew99!"},
+            data={"password": "BrandNewPass99!", "confirm_password": "BrandNewPass99!"},
             follow_redirects=False,
         )
         assert resp.status_code == 302
@@ -148,7 +149,7 @@ class TestRegister:
     def test_post_duplicate_username_shows_error(self, client):
         resp = client.post(
             "/register",
-            data={"employee_id": 3, "username": "admin", "password": "Passw0rdOK"},
+            data={"employee_id": 3, "username": "admin", "password": "Passw0rdOK!1234"},
         )
         assert resp.status_code == 200
         assert b"already exists" in resp.data
@@ -156,7 +157,7 @@ class TestRegister:
     def test_post_nonexistent_employee_id_shows_error(self, client):
         resp = client.post(
             "/register",
-            data={"employee_id": 9999, "username": "newbie", "password": "Passw0rdOK"},
+            data={"employee_id": 9999, "username": "newbie", "password": "Passw0rdOK!1234"},
         )
         assert resp.status_code == 200
         assert b"Employee ID does not exist" in resp.data
@@ -167,7 +168,7 @@ class TestRegister:
             data={
                 "employee_id": 1,
                 "username": "dupeemployee",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
         )
         assert resp.status_code == 200
@@ -179,12 +180,26 @@ class TestRegister:
             data={
                 "employee_id": 3,
                 "username": "cbridge",
-                "password": "Passw0rdOK",
+                "password": "Passw0rdOK!1234",
             },
             follow_redirects=False,
         )
         assert resp.status_code == 302
         assert "/login" in resp.headers["Location"]
+
+    def test_post_breached_password_is_rejected_at_registration(self, client):
+        with patch('routes.models.users._HIBP_ENABLED', True), \
+                patch('routes.models.users._check_hibp', return_value=5000):
+            resp = client.post(
+                "/register",
+                data={
+                    "employee_id": 3,
+                    "username": "cbridge",
+                    "password": "Passw0rdOK!1234",
+                },
+            )
+        assert resp.status_code == 200
+        assert b"breach" in resp.data
 
 
 class TestForgotPassword:

@@ -46,12 +46,12 @@ class LoginForm(FlaskForm):
 class RegisterForm(FlaskForm):
     employee_id = IntegerField('Employee ID:', validators=[InputRequired()])
     username = StringField('Username:', validators=[InputRequired(), Length(min=3, max=25)])
-    password = PasswordField('Password:', validators=[InputRequired(), Length(min=8, max=128)])
+    password = PasswordField('Password:', validators=[InputRequired(), Length(min=15, max=128)])
     submit = SubmitField('Register')
 
 
 class ForceChangePasswordForm(FlaskForm):
-    password = PasswordField('New Password:', validators=[InputRequired(), Length(min=8, max=128)])
+    password = PasswordField('New Password:', validators=[InputRequired(), Length(min=15, max=128)])
     confirm_password = PasswordField('Confirm New Password:', validators=[InputRequired()])
     submit = SubmitField('Change Password')
 
