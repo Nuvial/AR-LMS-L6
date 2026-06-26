@@ -3,7 +3,7 @@ import re
 from flask import request, jsonify, Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 
-from .models.employees import add_employee, get_employees, update_employee, delete_employee, is_last_admin
+from .models.employees import add_employee, get_employees, update_employee, delete_employee, is_last_admin, is_team_manager
 from .auth import admin_required
 
 employees = Blueprint('employees', __name__)
@@ -175,6 +175,8 @@ def update_employee_route(employee_id):
 def delete_employee_route(employee_id):
     if request.method == 'DELETE':
         try:
+            if is_team_manager(employee_id):
+                return jsonify({'message': 'error', 'error': 'This employee is currently assigned as a team manager. Reassign or remove their team before deleting.'})
             if employee_id == current_user.employee_id and is_last_admin(employee_id):
                 return jsonify({'message': 'error', 'error': 'Cannot delete your account as you are the only admin. Please assign another admin first.'})
             status = delete_employee(employee_id)

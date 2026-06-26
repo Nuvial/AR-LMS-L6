@@ -147,6 +147,19 @@ def update_employee(employee_id, data):
         raise Exception(f"An error occurred: {e}")
 
 
+def is_team_manager(employee_id):
+    """Returns True if the employee is currently assigned as a manager of any team."""
+    try:
+        db = get_db()
+        count = db.execute(
+            "SELECT COUNT(*) AS count FROM Team WHERE fk_manager_id = ?",
+            (employee_id,)
+        ).fetchone()['count']
+        return count > 0
+    except Exception as e:
+        raise e
+
+
 def is_last_admin(employee_id):
     """Returns True if employee_id is an admin AND the only admin in the system."""
     try:

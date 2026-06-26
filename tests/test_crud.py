@@ -174,6 +174,17 @@ class TestDeleteEmployee:
         assert body["message"] == "error"
         assert "only admin" in body["error"]
 
+    def test_cannot_delete_employee_who_is_a_manager(self, admin_client):
+        # Assign employee 3 as manager of a team, then attempt to delete them
+        admin_client.post(
+            "/teams/add_team",
+            json={"teamName": "Alpha Team", "managerId": "3", "employees": ["4"]},
+        )
+        resp = admin_client.delete("/employees/delete_employee/3")
+        body = resp.get_json()
+        assert body["message"] == "error"
+        assert "manager" in body["error"].lower()
+
 
 
 class TestLeaveRequest:
